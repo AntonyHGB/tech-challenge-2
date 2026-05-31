@@ -1,0 +1,47 @@
+[project]
+name = "ecommerce-recsys"
+version = "0.1.0"
+description = "Behaviour-based product recommendation system for e-commerce (Tech Challenge Fase 02)."
+requires-python = ">=3.12"
+
+# NOTE: dependency management with Poetry + committed lock file is Stage 2.
+# This file currently only carries the tooling configuration that Stage 1 needs
+# (ruff + pytest). The [project] table above is intentionally minimal.
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "SIM",  # flake8-simplify
+    "C4",   # flake8-comprehensions
+    "N",    # pep8-naming
+    "D",    # pydocstyle (Google-style docstrings)
+    "ANN",  # flake8-annotations (type hints)
+    "RUF",  # ruff-specific rules
+]
+ignore = [
+    "ANN401",  # allow typed **kwargs forwarding via Any
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.isort]
+known-first-party = ["recsys"]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests favour readability over docstring/annotation ceremony.
+"tests/**/*.py" = ["D100", "D101", "D102", "D103", "D104", "ANN"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

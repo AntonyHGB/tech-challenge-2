@@ -1,0 +1,18 @@
+# Example model configuration. Consumed by the training stage (Stage 3/4).
+# Kept under configs/ so hyper-parameters live outside the code.
+
+seed: 42
+
+model:
+  name: mlp          # one of: mlp, baseline
+  embedding_dim: 32
+  hidden_dim: 64
+
+training:
+  epochs: 50
+  batch_size: 256
+  learning_rate: 0.001
+  early_stopping_patience: 5
+
+baseline:
+  strategy: popularity

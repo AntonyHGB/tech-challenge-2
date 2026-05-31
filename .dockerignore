@@ -1,0 +1,39 @@
+# Version control
+.git/
+.gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Tooling caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Environment / secrets
+.env
+
+# ML experiment tracking
+mlruns/
+mlartifacts/
+
+# Data & model artifacts (mounted or pulled via DVC, not baked into the image)
+data/
+models/
+
+# Local project metadata
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
