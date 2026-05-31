@@ -49,6 +49,10 @@ mlartifacts/
 # Claude Code local settings (personal permissions)
 .claude/settings.local.json
 
+# Documentos locais (não versionados — fora do escopo de avaliação)
+CLAUDE.md
+Tech Challenge Fase 02.txt
+
 # IDE / OS
 .idea/
 .vscode/
