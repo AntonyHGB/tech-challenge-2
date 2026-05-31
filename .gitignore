@@ -16,10 +16,21 @@ env/
 .ruff_cache/
 .mypy_cache/
 .coverage
+.coverage.*
+coverage.xml
 htmlcov/
+
+# Logs
+*.log
+logs/
+
+# Jupyter
+.ipynb_checkpoints/
 
 # Environment / secrets
 .env
+.env.*
+!.env.example
 
 # ML experiment tracking
 mlruns/
