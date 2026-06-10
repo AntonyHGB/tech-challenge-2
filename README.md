@@ -7,9 +7,9 @@ reprodutível versionado em **DVC** e experimentos rastreados no **MLflow**.
 
 Projeto desenvolvido para o **Tech Challenge — Fase 02**.
 
-> **Status:** Etapa 1 (Clean Code e Estrutura) concluída. As Etapas 2 a 4 adicionam
-> o gerenciamento de dependências com Poetry, a containerização com Docker, o
-> pipeline DVC, o tracking no MLflow e o modelo neural treinado.
+> **Status:** Etapas 1 (Clean Code e Estrutura) e 2 (Ambiente e Dependências)
+> concluídas. As Etapas 3 e 4 adicionam a containerização com Docker, o pipeline
+> DVC, o tracking no MLflow e o modelo neural treinado.
 
 ## Contexto do problema
 
@@ -26,7 +26,8 @@ clássicos — tudo de forma reprodutível e seguindo boas práticas de engenhar
 | Baselines e pré-processamento | Scikit-Learn |
 | Tracking de experimentos e Model Registry | MLflow |
 | Versionamento de dados e pipeline | DVC |
-| Gerenciamento de dependências | Poetry (Etapa 2) |
+| Gerenciamento de dependências | Poetry |
+| Configuração tipada | Pydantic Settings |
 | Lint e formatação | ruff |
 | Testes | pytest |
 | Containerização | Docker (Etapa 3) |
@@ -35,6 +36,7 @@ clássicos — tudo de forma reprodutível e seguindo boas práticas de engenhar
 
 ```
 src/recsys/
+  config.py             # Settings (Pydantic) — configuração tipada lida do .env
   preprocessing/        # Padrão Strategy: transformadores de features intercambiáveis
     base.py             # PreprocessingStrategy (estratégia abstrata)
     strategies.py       # MinMaxScaler, StandardScaler (estratégias concretas)
@@ -45,10 +47,13 @@ src/recsys/
     registry.py         # build_default_factory() — ponto de composição
     mlp.py              # MLPRecommender (PyTorch, implementado na Etapa 4)
     baseline.py         # BaselineRecommender (Scikit-Learn, implementado na Etapa 4)
+scripts/
+  validate_env.py       # Validação de ambiente (versão, pacotes, settings)
 tests/                  # Suíte de testes (pytest)
 configs/                # Hiperparâmetros externalizados (model.yaml)
 data/   models/         # Artefatos versionados via DVC (mantidos fora do git)
-pyproject.toml          # Configuração de ferramentas (ruff, pytest)
+pyproject.toml          # Dependências (Poetry) + configuração de ferramentas (ruff, pytest)
+poetry.lock             # Lock file commitado — instalação reprodutível
 .env.example            # Exemplo de variáveis de ambiente
 ```
 
@@ -72,35 +77,60 @@ qualquer framework específico (princípio da Inversão de Dependência).
 
 ## Como executar
 
-O gerenciamento formal de dependências com Poetry (e o lock file commitado) chega na
-Etapa 2. Por ora, as ferramentas de qualidade são configuradas no `pyproject.toml`.
-Com `ruff` e `pytest` disponíveis no ambiente:
+O projeto usa **Poetry** para um ambiente reprodutível a partir do `poetry.lock`
+commitado. Requer **Python 3.12**.
+
+### 1. Instalação do zero
 
 ```bash
-ruff check .      # lint (ruff, isort, pydocstyle/google, pep8-naming, annotations)
-ruff format .     # formatação
-pytest            # executa a suíte de testes (src/ entra no PYTHONPATH via pyproject)
+poetry install                 # cria o virtualenv e instala prod + dev a partir do lock
+cp .env.example .env           # configurações locais (o .env é git-ignored)
+```
+
+### 2. Validação do ambiente
+
+```bash
+poetry run python scripts/validate_env.py   # checa Python, pacotes e settings
+```
+
+O script confirma a versão do Python, que cada dependência obrigatória importa e
+que as `Settings` (Pydantic) carregam do `.env`. Sai com código diferente de zero
+se algo faltar, servindo de portão para uma instalação limpa.
+
+### 3. Qualidade
+
+```bash
+poetry run ruff check .        # lint (ruff, isort, pydocstyle/google, pep8-naming, annotations)
+poetry run ruff format .       # formatação
+poetry run pytest              # executa a suíte de testes
 ```
 
 Para rodar um único teste:
 
 ```bash
-pytest tests/test_factory.py::test_unknown_model_raises_key_error
+poetry run pytest tests/test_factory.py::test_unknown_model_raises_key_error
 ```
 
 Os hooks de pre-commit (lint + formatação do ruff e verificações comuns) estão em
 `.pre-commit-config.yaml`. Ative-os com:
 
 ```bash
-pre-commit install
+poetry run pre-commit install
 ```
+
+### Configuração tipada
+
+As configurações são externalizadas para o `.env` e carregadas por
+`recsys.config.Settings` (Pydantic Settings), que valida e tipa cada variável —
+incluindo o `RANDOM_SEED` fixo que garante a reprodutibilidade. Use
+`get_settings()` para obter a instância única em cache.
 
 ## Roadmap das etapas
 
 1. **Clean Code e Estrutura** — esqueleto do projeto, SOLID, padrões Factory e
    Strategy, type hints, docstrings, ruff e pre-commit. ✅ Concluída.
 2. **Ambiente e Dependências** — `pyproject.toml` com Poetry, lock file commitado,
-   `.env` via Pydantic Settings e `scripts/validate_env.py`.
+   `.env` via Pydantic Settings e `scripts/validate_env.py`. ✅ Concluída.
 3. **Containerização e Versionamento** — Dockerfile multi-stage, `docker-compose`
    com servidor MLflow, inicialização do DVC e pipeline `preprocess → feature_eng →
    train → evaluate`.

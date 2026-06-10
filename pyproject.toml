@@ -2,11 +2,31 @@
 name = "ecommerce-recsys"
 version = "0.1.0"
 description = "Behaviour-based product recommendation system for e-commerce (Tech Challenge Fase 02)."
-requires-python = ">=3.12"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "torch (>=2.2,<3.0)",
+    "scikit-learn (>=1.4,<2.0)",
+    "mlflow (>=2.11,<3.0)",
+    "dvc (>=3.50,<4.0)",
+    "numpy (>=1.26,<3.0)",
+    "pandas (>=2.2,<3.0)",
+    "pyyaml (>=6.0,<7.0)",
+    "pydantic (>=2.6,<3.0)",
+    "pydantic-settings (>=2.2,<3.0)",
+]
 
-# NOTE: dependency management with Poetry + committed lock file is Stage 2.
-# This file currently only carries the tooling configuration that Stage 1 needs
-# (ruff + pytest). The [project] table above is intentionally minimal.
+[tool.poetry]
+packages = [{ include = "recsys", from = "src" }]
+
+[tool.poetry.group.dev.dependencies]
+pytest = ">=8.0,<10.0"
+ruff = ">=0.8.6,<1.0"
+pre-commit = ">=3.7,<5.0"
+
+[build-system]
+requires = ["poetry-core>=2.0.0"]
+build-backend = "poetry.core.masonry.api"
 
 [tool.ruff]
 line-length = 88
