@@ -1,0 +1,21 @@
+{
+  "model": "popularity",
+  "run_id": "f6327bb1c52d40a0bba72d7d44fbd3e3",
+  "model_uri": "runs:/f6327bb1c52d40a0bba72d7d44fbd3e3/model",
+  "hyperparameters": {
+    "smoothing": 10.0
+  },
+  "validation_metrics": {
+    "accuracy": 0.6380889330243849,
+    "precision": 0.6054112554112554,
+    "recall": 0.657498824635637,
+    "f1": 0.6303808879873789,
+    "roc_auc": 0.6841699415069867,
+    "log_loss": 0.6410024533676315,
+    "precision_at_k": 0.6387977452465085,
+    "recall_at_k": 0.8214916071589348,
+    "ndcg_at_k": 0.8110746950589587,
+    "evaluated_users": 566.0,
+    "n_interactions": 9063.0
+  }
+}

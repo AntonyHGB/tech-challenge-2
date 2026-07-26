@@ -1,112 +1,110 @@
-"""Concrete preprocessing strategies (Strategy pattern)."""
+"""Concrete preprocessing strategies backed by Scikit-Learn scalers."""
 
 from __future__ import annotations
 
+from abc import abstractmethod
 from collections.abc import Sequence
+
+import numpy as np
+from sklearn.base import TransformerMixin
+from sklearn.preprocessing import MinMaxScaler as SklearnMinMax
+from sklearn.preprocessing import StandardScaler as SklearnStandard
 
 from recsys.preprocessing.base import PreprocessingStrategy
 
 
-class MinMaxScaler(PreprocessingStrategy):
-    """Scale numeric values into the ``[0, 1]`` range."""
+class SklearnScalerStrategy(PreprocessingStrategy):
+    """Adapt a Scikit-Learn scaler to the strategy interface.
+
+    Applies the *Template Method* pattern: this class owns the fit/transform
+    skeleton (validation, reshaping, fitted-state guard) and defers the single
+    varying step — which scaler to instantiate — to :meth:`_build_scaler`.
+    """
 
     def __init__(self) -> None:
-        """Initialize an unfitted scaler."""
-        self._minimum: float | None = None
-        self._maximum: float | None = None
+        """Initialize an unfitted strategy."""
+        self._scaler: TransformerMixin | None = None
 
-    def fit(self, values: Sequence[float]) -> MinMaxScaler:
-        """Record the observed minimum and maximum.
+    @abstractmethod
+    def _build_scaler(self) -> TransformerMixin:
+        """Create the Scikit-Learn scaler this strategy delegates to.
+
+        Returns:
+            An unfitted scaler instance.
+        """
+
+    def fit(self, values: Sequence[float]) -> SklearnScalerStrategy:
+        """Fit the underlying scaler on ``values``.
 
         Args:
             values: Non-empty training values.
 
         Returns:
-            The fitted scaler.
+            The fitted strategy.
 
         Raises:
             ValueError: If ``values`` is empty.
         """
-        if not values:
-            raise ValueError("Cannot fit MinMaxScaler on an empty sequence.")
-        self._minimum = min(values)
-        self._maximum = max(values)
+        if len(values) == 0:
+            raise ValueError(f"Cannot fit {type(self).__name__} on an empty sequence.")
+        scaler = self._build_scaler()
+        scaler.fit(_as_column(values))
+        self._scaler = scaler
         return self
 
     def transform(self, values: Sequence[float]) -> list[float]:
-        """Scale ``values`` using the fitted range.
+        """Scale ``values`` with the fitted scaler.
 
         Args:
             values: Values to scale.
 
         Returns:
-            Scaled values; a constant column maps to all zeros.
+            Scaled values, in input order.
 
         Raises:
             RuntimeError: If called before :meth:`fit`.
         """
-        if self._minimum is None or self._maximum is None:
-            raise RuntimeError("MinMaxScaler must be fitted before transform().")
-        span = self._maximum - self._minimum
-        if span == 0:
-            return [0.0 for _ in values]
-        return [(value - self._minimum) / span for value in values]
+        if self._scaler is None:
+            raise RuntimeError(
+                f"{type(self).__name__} must be fitted before transform()."
+            )
+        if len(values) == 0:
+            return []
+        scaled = self._scaler.transform(_as_column(values))
+        return [float(value) for value in np.asarray(scaled).ravel()]
 
 
-class StandardScaler(PreprocessingStrategy):
+class MinMaxScaler(SklearnScalerStrategy):
+    """Scale numeric values into the ``[0, 1]`` range."""
+
+    def _build_scaler(self) -> TransformerMixin:
+        """Return a Scikit-Learn min-max scaler.
+
+        Returns:
+            The unfitted scaler.
+        """
+        return SklearnMinMax()
+
+
+class StandardScaler(SklearnScalerStrategy):
     """Standardize values to zero mean and unit variance."""
 
-    def __init__(self) -> None:
-        """Initialize an unfitted scaler."""
-        self._mean: float | None = None
-        self._std: float | None = None
-
-    def fit(self, values: Sequence[float]) -> StandardScaler:
-        """Estimate the mean and population standard deviation.
-
-        Args:
-            values: Non-empty training values.
+    def _build_scaler(self) -> TransformerMixin:
+        """Return a Scikit-Learn standard scaler.
 
         Returns:
-            The fitted scaler.
-
-        Raises:
-            ValueError: If ``values`` is empty.
+            The unfitted scaler.
         """
-        if not values:
-            raise ValueError("Cannot fit StandardScaler on an empty sequence.")
-        self._mean = sum(values) / len(values)
-        self._std = self._population_std(values, self._mean)
-        return self
+        return SklearnStandard()
 
-    def transform(self, values: Sequence[float]) -> list[float]:
-        """Standardize ``values`` using the fitted statistics.
 
-        Args:
-            values: Values to standardize.
+def _as_column(values: Sequence[float]) -> np.ndarray:
+    """Reshape a flat sequence into the 2D array Scikit-Learn expects.
 
-        Returns:
-            Standardized values; a constant column maps to all zeros.
+    Args:
+        values: Flat sequence of numbers.
 
-        Raises:
-            RuntimeError: If called before :meth:`fit`.
-        """
-        if self._mean is None or self._std is None:
-            raise RuntimeError("StandardScaler must be fitted before transform().")
-        if self._std == 0:
-            return [0.0 for _ in values]
-        return [(value - self._mean) / self._std for value in values]
-
-    @staticmethod
-    def _population_std(values: Sequence[float], mean: float) -> float:
-        """Compute the population standard deviation around ``mean``.
-
-        Args:
-            values: Values to summarize.
-            mean: Pre-computed mean of ``values``.
-
-        Returns:
-            The population standard deviation.
-        """
-        variance = sum((value - mean) ** 2 for value in values) / len(values)
-        return variance**0.5
+    Returns:
+        Array shaped ``(len(values), 1)``.
+    """
+    return np.asarray(values, dtype=np.float64).reshape(-1, 1)

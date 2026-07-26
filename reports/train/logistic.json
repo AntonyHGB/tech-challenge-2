@@ -1,0 +1,22 @@
+{
+  "model": "logistic",
+  "run_id": "6247b9819b134f6caf6219bb72181360",
+  "model_uri": "runs:/6247b9819b134f6caf6219bb72181360/model",
+  "hyperparameters": {
+    "penalty_strength": 1.0,
+    "max_iterations": 1000
+  },
+  "validation_metrics": {
+    "accuracy": 0.6923755930707272,
+    "precision": 0.6671226630186958,
+    "recall": 0.687823225199812,
+    "f1": 0.6773148148148148,
+    "roc_auc": 0.761840506697646,
+    "log_loss": 0.5872597834490314,
+    "precision_at_k": 0.6365009254585225,
+    "recall_at_k": 0.8211526587362612,
+    "ndcg_at_k": 0.8080958583049245,
+    "evaluated_users": 566.0,
+    "n_interactions": 9063.0
+  }
+}

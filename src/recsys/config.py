@@ -38,13 +38,33 @@ class Settings(BaseSettings):
     models_dir: Path = Field(
         default=Path("models"), description="Directory where trained models land."
     )
+    reports_dir: Path = Field(
+        default=Path("reports"),
+        description="Directory holding metrics and comparison reports.",
+    )
+    params_file: Path = Field(
+        default=Path("configs/params.yaml"),
+        description="Hyper-parameter file consumed by the DVC pipeline.",
+    )
     mlflow_tracking_uri: str = Field(
-        default="http://localhost:5000",
-        description="URI of the MLflow tracking server.",
+        default="sqlite:///mlflow.db",
+        description=(
+            "MLflow tracking backend. Defaults to a local SQLite store so the "
+            "Model Registry works without a server; docker compose points it "
+            "at the MLflow service instead."
+        ),
     )
     mlflow_experiment_name: str = Field(
         default="ecommerce-recsys",
         description="MLflow experiment grouping every tracked run.",
+    )
+    mlflow_artifact_location: str = Field(
+        default="./mlartifacts",
+        description="Artifact root used when the experiment is first created.",
+    )
+    mlflow_registered_model_name: str = Field(
+        default="ecommerce-recsys-recommender",
+        description="Name of the model registered and promoted in MLflow.",
     )
 
 

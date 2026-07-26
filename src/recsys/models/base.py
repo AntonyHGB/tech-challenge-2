@@ -3,53 +3,61 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Sequence
+from typing import Any, ClassVar
+
+import numpy as np
+
+from recsys.data.interactions import InteractionData
 
 
 class RecommenderModel(ABC):
     """Common interface every recommender must implement.
 
-    Concrete models (the PyTorch neural network, the Scikit-Learn baseline, ...)
-    depend only on this abstraction, which keeps the surrounding pipeline
-    decoupled from any specific framework, honouring the Dependency Inversion
-    Principle.
+    Concrete models (the PyTorch neural network, the Scikit-Learn baselines, ...)
+    depend only on this abstraction, which keeps the pipeline, the evaluation
+    harness and the MLflow tracking decoupled from any specific framework,
+    honouring the Dependency Inversion Principle.
+
+    Attributes:
+        name: Key the model is registered under in the factory.
     """
+
+    name: ClassVar[str] = "recommender"
 
     @abstractmethod
     def fit(
-        self,
-        user_ids: Sequence[int],
-        item_ids: Sequence[int],
-        labels: Sequence[float],
+        self, data: InteractionData, validation: InteractionData | None = None
     ) -> None:
         """Train the model on user-item interactions.
 
         Args:
-            user_ids: Encoded user identifiers.
-            item_ids: Encoded item identifiers.
-            labels: Interaction targets (e.g. implicit 0/1 or explicit ratings).
+            data: Training interactions.
+            validation: Optional holdout used for early stopping or monitoring.
         """
 
     @abstractmethod
-    def predict(self, user_ids: Sequence[int], item_ids: Sequence[int]) -> list[float]:
-        """Predict interaction scores for user-item pairs.
+    def predict_proba(self, data: InteractionData) -> np.ndarray:
+        """Score how likely each interaction is to be relevant.
 
         Args:
-            user_ids: Encoded user identifiers.
-            item_ids: Encoded item identifiers.
+            data: Interactions to score.
 
         Returns:
-            Predicted score for each pair, in input order.
+            Probabilities in ``[0, 1]``, aligned with the input rows.
         """
 
-    @abstractmethod
-    def recommend(self, user_id: int, top_k: int) -> list[int]:
-        """Return the top-``k`` recommended item ids for a user.
-
-        Args:
-            user_id: Encoded user identifier.
-            top_k: Number of items to recommend.
+    def hyperparameters(self) -> dict[str, Any]:
+        """Describe the configuration MLflow should log for this model.
 
         Returns:
-            Item ids ordered from most to least relevant.
+            Mapping of hyper-parameter name to value; empty by default.
         """
+        return {}
+
+    def training_history(self) -> dict[str, list[float]]:
+        """Per-epoch learning curves, when the model produces them.
+
+        Returns:
+            Mapping of curve name to its per-epoch values; empty by default.
+        """
+        return {}
