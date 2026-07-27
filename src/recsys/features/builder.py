@@ -75,13 +75,6 @@ def scale_frame(pipeline: PreprocessingPipeline, frame: pd.DataFrame) -> pd.Data
 def _columns_of(frame: pd.DataFrame, columns: Sequence[str]) -> dict[str, list[float]]:
     """Extrai as colunas pedidas como listas simples de Python.
 
-    Args:
-        frame: Frame de origem.
-        columns: Nomes das colunas a extrair.
-
-    Returns:
-        Mapa de nome da coluna para os seus valores.
-
     Raises:
         KeyError: Se faltar alguma coluna em ``frame``.
     """

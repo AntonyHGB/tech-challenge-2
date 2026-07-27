@@ -64,17 +64,9 @@ class InteractionData:
 
     @property
     def n_features(self) -> int:
-        """Quantidade de features comportamentais por interação.
-
-        Returns:
-            Número de features.
-        """
+        """Quantidade de features comportamentais por interação."""
         return int(self.features.shape[1])
 
     def __len__(self) -> int:
-        """Retorna a quantidade de interações.
-
-        Returns:
-            Número de linhas.
-        """
+        """Quantidade de interações."""
         return int(self.user_indices.shape[0])

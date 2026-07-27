@@ -50,8 +50,7 @@ def load_interactions(path: Path) -> pd.DataFrame:
         path: Localização do ``ratings.csv`` bruto.
 
     Returns:
-        Frame com as colunas ``user_id``, ``item_id``, ``rating`` e
-        ``timestamp``.
+        Frame com ``user_id``, ``item_id``, ``rating`` e ``timestamp``.
 
     Raises:
         ValueError: Se o arquivo bruto não tiver alguma coluna esperada.
@@ -88,10 +87,6 @@ def clean_interactions(
 def _extract(archive: Path, target: Path) -> None:
     """Extrai o arquivo de avaliações de dentro do pacote compactado.
 
-    Args:
-        archive: Arquivo zip baixado.
-        target: Arquivo de destino.
-
     Raises:
         KeyError: Se o pacote não contiver o arquivo de avaliações.
     """
@@ -103,16 +98,7 @@ def _extract(archive: Path, target: Path) -> None:
 
 
 def _filter_rare(frame: pd.DataFrame, column: str, minimum: int) -> pd.DataFrame:
-    """Mantém apenas as linhas cujo identificador aparece o bastante.
-
-    Args:
-        frame: Frame a filtrar.
-        column: Coluna com o identificador da entidade.
-        minimum: Número mínimo de ocorrências exigido.
-
-    Returns:
-        O frame filtrado.
-    """
+    """Mantém apenas as linhas cujo identificador aparece o bastante."""
     if minimum <= 1:
         return frame
     counts = frame[column].value_counts()

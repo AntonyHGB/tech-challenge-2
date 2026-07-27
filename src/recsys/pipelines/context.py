@@ -26,84 +26,42 @@ class ArtifactLayout:
 
     @property
     def raw_interactions(self) -> Path:
-        """Dataset bruto versionado pelo DVC.
-
-        Returns:
-            Caminho do ``ratings.csv``.
-        """
+        """Dataset bruto versionado pelo DVC."""
         return self.raw_dir / "ratings.csv"
 
     @property
     def interactions(self) -> Path:
-        """Interações limpas produzidas pelo stage de preprocess.
-
-        Returns:
-            Caminho do parquet de interações.
-        """
+        """Interações limpas produzidas pelo stage de preprocess."""
         return self.processed_dir / "interactions.parquet"
 
     @property
     def feature_store(self) -> Path:
-        """Artefatos de features produzidos pelo stage de feature_eng.
-
-        Returns:
-            Caminho do JSON com o feature store.
-        """
+        """Artefatos de features produzidos pelo stage de feature_eng."""
         return self.processed_dir / "feature_store.json"
 
     @property
-    def preprocessor(self) -> Path:
-        """Pipeline de pré-processamento já ajustado.
-
-        Returns:
-            Caminho do pipeline serializado.
-        """
-        return self.processed_dir / "preprocessor.joblib"
-
-    @property
     def metrics(self) -> Path:
-        """Métricas de comparação acompanhadas pelo DVC.
-
-        Returns:
-            Caminho do JSON de métricas.
-        """
+        """Métricas de comparação acompanhadas pelo DVC."""
         return self.reports_dir / "metrics.json"
 
     @property
     def comparison(self) -> Path:
-        """Tabela de comparação legível por pessoas.
-
-        Returns:
-            Caminho do markdown de comparação.
-        """
+        """Tabela de comparação legível por pessoas."""
         return self.reports_dir / "comparison.md"
 
     @property
-    def recommendations(self) -> Path:
-        """Recomendações de exemplo do melhor modelo.
-
-        Returns:
-            Caminho do JSON de recomendações.
-        """
-        return self.reports_dir / "sample_recommendations.json"
-
-    @property
     def registry(self) -> Path:
-        """Registro da versão promovida a Production.
-
-        Returns:
-            Caminho do JSON do registry.
-        """
+        """Registro da versão promovida a Production."""
         return self.reports_dir / "model_registry.json"
 
     def split(self, name: str) -> Path:
-        """Caminho de um split já preparado.
+        """Caminho do parquet de um split já preparado.
 
         Args:
             name: Nome do split (``train``, ``validation`` ou ``test``).
 
         Returns:
-            Caminho do parquet do split.
+            Caminho do arquivo.
         """
         return self.processed_dir / f"{name}.parquet"
 
@@ -114,18 +72,18 @@ class ArtifactLayout:
             model_name: Chave do modelo registrado.
 
         Returns:
-            Caminho do modelo serializado.
+            Caminho do arquivo.
         """
         return self.models_dir / model_name / "model.joblib"
 
     def train_report(self, model_name: str) -> Path:
-        """Caminho do relatório de treino.
+        """Caminho do relatório de treino de um modelo.
 
         Args:
             model_name: Chave do modelo registrado.
 
         Returns:
-            Caminho do JSON com o relatório de treino.
+            Caminho do arquivo.
         """
         return self.reports_dir / "train" / f"{model_name}.json"
 

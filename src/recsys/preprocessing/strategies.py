@@ -28,11 +28,7 @@ class SklearnScalerStrategy(PreprocessingStrategy):
 
     @abstractmethod
     def _build_scaler(self) -> TransformerMixin:
-        """Cria o scaler do Scikit-Learn ao qual a estratégia delega.
-
-        Returns:
-            Uma instância de scaler ainda não ajustada.
-        """
+        """Cria o scaler do Scikit-Learn ao qual a estratégia delega."""
 
     def fit(self, values: Sequence[float]) -> SklearnScalerStrategy:
         """Ajusta o scaler interno em ``values``.
@@ -77,11 +73,7 @@ class MinMaxScaler(SklearnScalerStrategy):
     """Escalona os valores numéricos para o intervalo ``[0, 1]``."""
 
     def _build_scaler(self) -> TransformerMixin:
-        """Retorna um scaler min-max do Scikit-Learn.
-
-        Returns:
-            O scaler ainda não ajustado.
-        """
+        """Retorna um scaler min-max do Scikit-Learn."""
         return SklearnMinMax()
 
 
@@ -89,11 +81,7 @@ class StandardScaler(SklearnScalerStrategy):
     """Padroniza os valores para média zero e variância unitária."""
 
     def _build_scaler(self) -> TransformerMixin:
-        """Retorna um scaler padrão do Scikit-Learn.
-
-        Returns:
-            O scaler ainda não ajustado.
-        """
+        """Retorna um scaler padrão do Scikit-Learn."""
         return SklearnStandard()
 
 
@@ -104,11 +92,7 @@ STRATEGY_BUILDERS: dict[str, Callable[[], PreprocessingStrategy]] = {
 
 
 def available_strategies() -> list[str]:
-    """Lista as estratégias que a configuração pode escolher.
-
-    Returns:
-        Nomes das estratégias, ordenados.
-    """
+    """Nomes das estratégias que a configuração pode escolher, ordenados."""
     return sorted(STRATEGY_BUILDERS)
 
 
@@ -144,12 +128,5 @@ def build_pipeline(name: str, columns: Sequence[str]) -> PreprocessingPipeline:
 
 
 def _as_column(values: Sequence[float]) -> np.ndarray:
-    """Converte uma sequência simples no array 2D que o Scikit-Learn espera.
-
-    Args:
-        values: Sequência plana de números.
-
-    Returns:
-        Array no formato ``(len(values), 1)``.
-    """
+    """Converte a sequência no array 2D que o Scikit-Learn espera."""
     return np.asarray(values, dtype=np.float64).reshape(-1, 1)

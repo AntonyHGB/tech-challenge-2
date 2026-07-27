@@ -10,8 +10,6 @@ import yaml
 from pydantic import BaseModel, ConfigDict, Field
 
 from recsys.features.store import FeatureStore
-from recsys.models.baseline import LogisticRecommender, PopularityRecommender
-from recsys.models.mlp import MLPRecommender
 
 
 class StrictModel(BaseModel):
@@ -68,7 +66,6 @@ class EvaluationParams(StrictModel):
     top_k: int = Field(default=10, ge=1)
     decision_threshold: float = Field(default=0.5, gt=0, lt=1)
     primary_metric: str = Field(default="roc_auc")
-    sample_users: int = Field(default=3, ge=0)
 
 
 class Params(StrictModel):
@@ -95,6 +92,33 @@ class Params(StrictModel):
         return flattened
 
 
+# Cada modelo registrado tem um construtor de argumentos, o que evita ramificar
+# a configuração com if/else quando um modelo novo entra no projeto.
+KWARGS_BUILDERS: dict[str, Callable[[Params, FeatureStore], dict[str, Any]]] = {
+    "mlp": lambda params, store: {
+        "n_users": store.n_users,
+        "n_items": store.n_items,
+        "embedding_dim": params.model.embedding_dim,
+        "hidden_dim": params.model.hidden_dim,
+        "dropout": params.model.dropout,
+        "epochs": params.training.epochs,
+        "batch_size": params.training.batch_size,
+        "learning_rate": params.training.learning_rate,
+        "weight_decay": params.training.weight_decay,
+        "early_stopping_patience": params.training.early_stopping_patience,
+        "seed": params.seed,
+    },
+    "popularity": lambda params, store: {
+        "smoothing": params.baselines.popularity_smoothing,
+    },
+    "logistic": lambda params, store: {
+        "penalty_strength": params.baselines.logistic_penalty_strength,
+        "max_iterations": params.baselines.logistic_max_iterations,
+        "seed": params.seed,
+    },
+}
+
+
 def load_params(path: Path) -> Params:
     """Lê e valida o arquivo de hiperparâmetros.
 
@@ -111,68 +135,6 @@ def load_params(path: Path) -> Params:
         raise FileNotFoundError(f"Arquivo de parâmetros '{path}' não encontrado.")
     payload = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     return Params.model_validate(payload)
-
-
-def _mlp_kwargs(params: Params, store: FeatureStore) -> dict[str, Any]:
-    """Monta os argumentos do recomendador neural.
-
-    Args:
-        params: Parâmetros validados do pipeline.
-        store: Artefatos de features, que informam o tamanho dos vocabulários.
-
-    Returns:
-        Argumentos nomeados de :class:`MLPRecommender`.
-    """
-    return {
-        "n_users": store.n_users,
-        "n_items": store.n_items,
-        "embedding_dim": params.model.embedding_dim,
-        "hidden_dim": params.model.hidden_dim,
-        "dropout": params.model.dropout,
-        "epochs": params.training.epochs,
-        "batch_size": params.training.batch_size,
-        "learning_rate": params.training.learning_rate,
-        "weight_decay": params.training.weight_decay,
-        "early_stopping_patience": params.training.early_stopping_patience,
-        "seed": params.seed,
-    }
-
-
-def _popularity_kwargs(params: Params, store: FeatureStore) -> dict[str, Any]:
-    """Monta os argumentos do baseline de popularidade.
-
-    Args:
-        params: Parâmetros validados do pipeline.
-        store: Não utilizado; mantém a assinatura uniforme.
-
-    Returns:
-        Argumentos nomeados de :class:`PopularityRecommender`.
-    """
-    return {"smoothing": params.baselines.popularity_smoothing}
-
-
-def _logistic_kwargs(params: Params, store: FeatureStore) -> dict[str, Any]:
-    """Monta os argumentos do baseline logístico.
-
-    Args:
-        params: Parâmetros validados do pipeline.
-        store: Não utilizado; mantém a assinatura uniforme.
-
-    Returns:
-        Argumentos nomeados de :class:`LogisticRecommender`.
-    """
-    return {
-        "penalty_strength": params.baselines.logistic_penalty_strength,
-        "max_iterations": params.baselines.logistic_max_iterations,
-        "seed": params.seed,
-    }
-
-
-KWARGS_BUILDERS: dict[str, Callable[[Params, FeatureStore], dict[str, Any]]] = {
-    MLPRecommender.name: _mlp_kwargs,
-    PopularityRecommender.name: _popularity_kwargs,
-    LogisticRecommender.name: _logistic_kwargs,
-}
 
 
 def model_kwargs(

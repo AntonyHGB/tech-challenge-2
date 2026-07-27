@@ -25,11 +25,7 @@ class PreprocessingPipeline:
 
     @property
     def columns(self) -> list[str]:
-        """Nomes das colunas tratadas pelo pipeline.
-
-        Returns:
-            Colunas configuradas, na ordem de inserção.
-        """
+        """Colunas tratadas pelo pipeline, na ordem de inserção."""
         return list(self._strategies)
 
     def fit(self, columns: Mapping[str, Sequence[float]]) -> PreprocessingPipeline:

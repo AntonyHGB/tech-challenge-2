@@ -17,6 +17,12 @@ from recsys.data.interactions import InteractionData
 from recsys.models.base import RecommenderModel
 
 DECISION_THRESHOLD = 0.5
+RANKING_METRIC_NAMES: tuple[str, ...] = (
+    "precision_at_k",
+    "recall_at_k",
+    "ndcg_at_k",
+    "evaluated_users",
+)
 
 
 def evaluate_model(
@@ -102,12 +108,7 @@ def ranking_metrics(
         if group["label"].sum() > 0
     ]
     if not per_user:
-        return {
-            "precision_at_k": 0.0,
-            "recall_at_k": 0.0,
-            "ndcg_at_k": 0.0,
-            "evaluated_users": 0.0,
-        }
+        return dict.fromkeys(RANKING_METRIC_NAMES, 0.0)
     summary = pd.DataFrame(per_user).mean()
     return {
         "precision_at_k": float(summary["precision"]),
@@ -118,30 +119,14 @@ def ranking_metrics(
 
 
 def _roc_auc(labels: np.ndarray, scores: np.ndarray) -> float:
-    """Calcula o ROC AUC, tolerando entradas com uma única classe.
-
-    Args:
-        labels: Relevância verdadeira.
-        scores: Probabilidades previstas.
-
-    Returns:
-        O ROC AUC, ou ``0.5`` quando só existe uma classe.
-    """
+    """Calcula o ROC AUC, devolvendo ``0.5`` quando só existe uma classe."""
     if len(np.unique(labels)) < 2:
         return 0.5
     return float(roc_auc_score(labels, scores))
 
 
 def _user_metrics(group: pd.DataFrame, top_k: int) -> dict[str, float]:
-    """Calcula as métricas de ranking de um único usuário.
-
-    Args:
-        group: Linhas de um usuário, com ``label`` e ``score``.
-        top_k: Corte do ranking.
-
-    Returns:
-        Mapa com a precisão, o recall e o NDCG daquele usuário.
-    """
+    """Calcula precisão, recall e NDCG do ranking de um único usuário."""
     relevance = group.sort_values("score", ascending=False)["label"].to_numpy()
     cut = relevance[:top_k]
     relevant_total = float(relevance.sum())
@@ -153,16 +138,7 @@ def _user_metrics(group: pd.DataFrame, top_k: int) -> dict[str, float]:
 
 
 def _ndcg(cut: np.ndarray, relevant_total: float, top_k: int) -> float:
-    """Calcula o ganho cumulativo descontado normalizado de um ranking.
-
-    Args:
-        cut: Relevância binária dos ``top_k`` itens melhor colocados.
-        relevant_total: Quantidade de itens relevantes disponíveis ao usuário.
-        top_k: Corte do ranking.
-
-    Returns:
-        O NDCG, em ``[0, 1]``.
-    """
+    """Calcula o ganho cumulativo descontado normalizado de um ranking."""
     discounts = 1.0 / np.log2(np.arange(2, len(cut) + 2))
     gain = float((cut * discounts).sum())
     ideal = float(discounts[: int(min(relevant_total, top_k))].sum())

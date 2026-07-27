@@ -60,6 +60,13 @@ def test_visao_achatada_prefixa_cada_secao():
     assert flat["evaluation.primary_metric"] == "roc_auc"
 
 
+def test_kwargs_dos_baselines_vem_da_secao_baselines():
+    kwargs = model_kwargs("logistic", Params(), _store())
+    assert kwargs["penalty_strength"] == 1.0
+    assert kwargs["max_iterations"] == 1000
+    assert model_kwargs("popularity", Params(), _store()) == {"smoothing": 10.0}
+
+
 def test_kwargs_levam_o_vocabulario_para_a_rede():
     kwargs = model_kwargs("mlp", Params(), _store())
     assert kwargs["n_users"] == 2

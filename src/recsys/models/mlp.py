@@ -170,11 +170,7 @@ class MLPRecommender(RecommenderModel):
         return torch.sigmoid(logits).cpu().numpy().astype(np.float64)
 
     def hyperparameters(self) -> dict[str, Any]:
-        """Descreve a configuração registrada no MLflow.
-
-        Returns:
-            Mapa de hiperparâmetro para valor.
-        """
+        """Configuração registrada no MLflow."""
         return {
             "embedding_dim": self.embedding_dim,
             "hidden_dim": self.hidden_dim,
@@ -189,40 +185,21 @@ class MLPRecommender(RecommenderModel):
         }
 
     def training_history(self) -> dict[str, list[float]]:
-        """Devolve as curvas de aprendizado por época.
-
-        Returns:
-            Mapa com as curvas ``train_loss`` e ``validation_loss``.
-        """
+        """Curvas ``train_loss`` e ``validation_loss`` por época."""
         return {key: list(values) for key, values in self._history.items()}
 
     @property
     def best_epoch(self) -> int:
-        """Época cujos pesos o early stopping restaurou.
-
-        Returns:
-            Número da época (base um), ou ``0`` antes do treino.
-        """
+        """Época cujos pesos o early stopping restaurou."""
         return self._best_epoch
 
     @property
     def epochs_run(self) -> int:
-        """Quantidade de épocas de fato executadas.
-
-        Returns:
-            Tamanho da curva de treino.
-        """
+        """Quantidade de épocas de fato executadas."""
         return len(self._history["train_loss"])
 
     def _build_network(self, n_features: int) -> RecommenderNetwork:
-        """Instancia a rede para a largura de features informada.
-
-        Args:
-            n_features: Quantidade de features por interação.
-
-        Returns:
-            Uma rede recém-inicializada.
-        """
+        """Instancia a rede para a largura de features informada."""
         return RecommenderNetwork(
             n_users=self.n_users,
             n_items=self.n_items,
@@ -233,14 +210,7 @@ class MLPRecommender(RecommenderModel):
         )
 
     def _build_loader(self, data: InteractionData) -> DataLoader:
-        """Embrulha os arrays de treino em um loader embaralhado e semeado.
-
-        Args:
-            data: Interações de treino.
-
-        Returns:
-            Um ``DataLoader`` com embaralhamento reprodutível.
-        """
+        """Embrulha os dados de treino em um loader embaralhado e semeado."""
         dataset = TensorDataset(*self._to_tensors(data))
         generator = torch.Generator().manual_seed(self.seed)
         return DataLoader(
@@ -250,15 +220,7 @@ class MLPRecommender(RecommenderModel):
     def _train_epoch(
         self, loader: DataLoader, optimizer: torch.optim.Optimizer
     ) -> float:
-        """Executa uma passagem de otimização sobre os dados de treino.
-
-        Args:
-            loader: Dados de treino em lotes.
-            optimizer: Otimizador que atualiza os pesos.
-
-        Returns:
-            Perda média de treino da época, ponderada por amostra.
-        """
+        """Roda uma época de otimização e devolve a perda média por amostra."""
         network = self._require_network()
         network.train()
         total, seen = 0.0, 0
@@ -274,15 +236,7 @@ class MLPRecommender(RecommenderModel):
     def _monitored_loss(
         self, validation: InteractionData | None, fallback: float
     ) -> float:
-        """Calcula a perda que o early stopping deve monitorar.
-
-        Args:
-            validation: Interações de validação, se houver.
-            fallback: Perda usada quando não existe split de validação.
-
-        Returns:
-            O valor da perda monitorada.
-        """
+        """Calcula a perda que o early stopping monitora na época."""
         if validation is None or len(validation) == 0:
             return fallback
         network = self._require_network()
@@ -296,14 +250,7 @@ class MLPRecommender(RecommenderModel):
     def _to_tensors(
         data: InteractionData,
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-        """Converte um conjunto de interações em tensores do PyTorch.
-
-        Args:
-            data: Interações a converter.
-
-        Returns:
-            Tupla com os tensores de usuário, item, features e rótulo.
-        """
+        """Converte as interações em tensores de usuário, item, features e rótulo."""
         return (
             torch.from_numpy(data.user_indices).long(),
             torch.from_numpy(data.item_indices).long(),
@@ -312,10 +259,7 @@ class MLPRecommender(RecommenderModel):
         )
 
     def _require_network(self) -> RecommenderNetwork:
-        """Devolve a rede treinada, barrando o uso antes do treino.
-
-        Returns:
-            A rede treinada.
+        """Devolve a rede treinada.
 
         Raises:
             RuntimeError: Se o modelo ainda não tiver sido treinado.

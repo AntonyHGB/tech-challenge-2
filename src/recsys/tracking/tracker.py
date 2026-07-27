@@ -1,4 +1,4 @@
-"""Fachada enxuta do MLflow usada pelos stages do pipeline."""
+"""Fachada do MLflow usada pelos stages, com o empacotamento dos modelos."""
 
 from __future__ import annotations
 
@@ -8,14 +8,78 @@ from pathlib import Path
 from typing import Any
 
 import mlflow
+import numpy as np
 import pandas as pd
 from mlflow.entities import Experiment
 from mlflow.tracking import MlflowClient
 
 import recsys
-from recsys.tracking.pyfunc import PIP_REQUIREMENTS, RecommenderPyfunc
+from recsys.data.interactions import LABEL_COLUMN, InteractionData
+from recsys.models.persistence import load_model
 
 MODEL_ARTIFACT_PATH = "model"
+PIP_REQUIREMENTS: list[str] = ["torch", "scikit-learn", "numpy", "pandas", "joblib"]
+EXAMPLE_ROWS = 5
+
+
+class RecommenderPyfunc(mlflow.pyfunc.PythonModel):
+    """Serve um recomendador salvo pela interface genérica do MLflow.
+
+    O empacotamento mantém o registry independente de framework: a rede em
+    PyTorch e os baselines do Scikit-Learn são registrados, versionados e
+    promovidos exatamente do mesmo jeito.
+    """
+
+    def load_context(self, context: Any) -> None:
+        """Carrega o recomendador serializado junto ao modelo.
+
+        Args:
+            context: Contexto do MLflow, que expõe os artefatos registrados.
+        """
+        self._model = load_model(Path(context.artifacts["model"]))
+
+    def predict(
+        self,
+        context: Any,
+        model_input: pd.DataFrame,
+        params: dict[str, Any] | None = None,
+    ) -> np.ndarray:
+        """Pontua um lote de interações candidatas.
+
+        Args:
+            context: Contexto do MLflow (não usado; o modelo já está em memória).
+            model_input: Frame com índices codificados e features escalonadas.
+            params: Parâmetros de inferência, não utilizados.
+
+        Returns:
+            Probabilidade de relevância de cada linha.
+        """
+        return self._model.predict_proba(InteractionData.from_frame(model_input))
+
+
+def build_input_example(
+    data: InteractionData, feature_columns: Sequence[str]
+) -> pd.DataFrame:
+    """Monta o exemplo de entrada com que o MLflow infere a assinatura.
+
+    Args:
+        data: Interações de onde tirar o exemplo.
+        feature_columns: Nomes das colunas de features comportamentais.
+
+    Returns:
+        Algumas linhas no mesmo formato da carga usada em produção.
+    """
+    rows = min(EXAMPLE_ROWS, len(data))
+    example = pd.DataFrame(
+        {
+            "user_index": data.user_indices[:rows],
+            "item_index": data.item_indices[:rows],
+            LABEL_COLUMN: data.labels[:rows],
+        }
+    )
+    for position, column in enumerate(feature_columns):
+        example[column] = data.features[:rows, position]
+    return example
 
 
 class ExperimentTracker:
@@ -48,11 +112,7 @@ class ExperimentTracker:
 
     @property
     def client(self) -> MlflowClient:
-        """Cliente do MLflow, para as operações de registry.
-
-        Returns:
-            O cliente configurado.
-        """
+        """Cliente do MLflow, para as operações de registry."""
         return self._client
 
     @contextmanager
@@ -134,15 +194,7 @@ class ExperimentTracker:
     def _ensure_experiment(
         self, name: str, artifact_location: str | None
     ) -> Experiment:
-        """Busca o experimento, criando-o no primeiro uso.
-
-        Args:
-            name: Nome do experimento.
-            artifact_location: Raiz de artefatos usada na criação.
-
-        Returns:
-            A entidade do experimento.
-        """
+        """Busca o experimento, criando-o no primeiro uso."""
         existing = self._client.get_experiment_by_name(name)
         if existing is not None:
             return existing

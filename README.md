@@ -60,7 +60,6 @@ src/recsys/
   config.py             # Settings (Pydantic) — configuração tipada lida do .env
   seeding.py            # set_global_seed — reprodutibilidade em random/numpy/torch
   metrics.py            # Métricas de classificação e de ranking
-  ranker.py             # TopKRanker — geração de recomendações top-k
   data/                 # Ingestão: download, limpeza, encoders, split, arrays
   features/             # Rótulo implícito, escala e o feature store persistido
   preprocessing/        # Padrão Strategy + Template Method (scalers do Scikit-Learn)
@@ -94,8 +93,8 @@ data/ models/           # Artefatos versionados via DVC, fora do git
   do scaler às subclasses.
 
 A interface comum `RecommenderModel` mantém pipeline, avaliação e tracking
-desacoplados de qualquer framework específico (Inversão de Dependência), e o
-ranqueamento vive no `TopKRanker`, fora dos modelos (Responsabilidade Única).
+desacoplados de qualquer framework específico (Inversão de Dependência): os
+modelos só pontuam interações, e ordenação, métricas e registro vivem fora deles.
 
 ## Como executar
 
@@ -150,21 +149,26 @@ virtualenv e o código, rodando como usuário não-root.
 ```bash
 poetry run ruff check .        # lint (isort, pydocstyle/google, pep8-naming, annotations)
 poetry run ruff format .       # formatação
-poetry run pytest              # suíte de testes (58 testes)
-poetry run pytest tests/test_models.py::test_mlp_learns_a_separable_signal   # um teste
+poetry run pytest              # suíte de testes (59 testes)
+poetry run pytest tests/test_models.py::test_mlp_aprende_um_sinal_separavel   # um teste
 poetry run pre-commit install  # ativa os hooks de pre-commit
 ```
+
+Convenções seguidas no código: funções com no máximo 20 linhas, type hints em tudo
+e docstrings no padrão Google. A documentação completa (`Args`/`Returns`/`Raises`)
+fica na API pública; helpers privados e propriedades triviais levam uma linha, o que
+mantém o código legível sem transformar a documentação na maior parte do arquivo.
 
 ## Pipeline DVC
 
 | Stage | Entrada | Saída |
 | --- | --- | --- |
 | `preprocess` | `data/raw/ratings.csv` (versionado no DVC) | `interactions.parquet` |
-| `feature_eng` | `interactions.parquet` | splits `train`/`validation`/`test`, `feature_store.json`, `preprocessor.joblib` |
+| `feature_eng` | `interactions.parquet` | splits `train`/`validation`/`test` e `feature_store.json` |
 | `train@mlp` | splits + `feature_store.json` | `models/mlp/model.joblib`, `reports/train/mlp.json` |
 | `train@popularity` | idem | `models/popularity/model.joblib`, relatório |
 | `train@logistic` | idem | `models/logistic/model.joblib`, relatório |
-| `evaluate` | split de teste + os três modelos | `metrics.json`, `comparison.md`, `model_registry.json`, `sample_recommendations.json` |
+| `evaluate` | split de teste + os três modelos | `metrics.json`, `comparison.md`, `model_registry.json` |
 
 O dataset bruto é versionado com `dvc add` (`data/raw/ratings.csv.dvc`) e o
 remote padrão é o diretório local `dvcstore/` — trocável por S3 alterando

@@ -71,11 +71,7 @@ class PopularityRecommender(RecommenderModel):
         )
 
     def hyperparameters(self) -> dict[str, Any]:
-        """Descreve a configuração registrada no MLflow.
-
-        Returns:
-            Mapa de hiperparâmetro para valor.
-        """
+        """Configuração registrada no MLflow."""
         return {"smoothing": self.smoothing}
 
 
@@ -141,11 +137,7 @@ class LogisticRecommender(RecommenderModel):
         return self._estimator.predict_proba(data.features)[:, 1].astype(np.float64)
 
     def hyperparameters(self) -> dict[str, Any]:
-        """Descreve a configuração registrada no MLflow.
-
-        Returns:
-            Mapa de hiperparâmetro para valor.
-        """
+        """Configuração registrada no MLflow."""
         return {
             "penalty_strength": self.penalty_strength,
             "max_iterations": self.max_iterations,

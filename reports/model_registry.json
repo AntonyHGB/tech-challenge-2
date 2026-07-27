@@ -1,7 +1,7 @@
 {
   "name": "ecommerce-recsys-recommender",
-  "version": "8",
+  "version": "9",
   "stage": "Production",
   "alias": "champion",
-  "run_id": "4cccecc6ceb64ba380d272d0829f8f21"
+  "run_id": "245b9eb4c9df488c8e095fb8e514b9a4"
 }

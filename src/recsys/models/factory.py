@@ -61,11 +61,7 @@ class ModelFactory:
         return self._builders[name](**kwargs)
 
     def available(self) -> list[str]:
-        """Lista os modelos registrados.
-
-        Returns:
-            Nomes dos modelos registrados, ordenados.
-        """
+        """Nomes dos modelos registrados, ordenados."""
         return sorted(self._builders)
 
 
