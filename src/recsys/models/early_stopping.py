@@ -1,4 +1,4 @@
-"""Early stopping helper for the PyTorch training loop."""
+"""Early stopping para o laço de treino em PyTorch."""
 
 from __future__ import annotations
 
@@ -9,19 +9,19 @@ from torch import nn
 
 
 class EarlyStopping:
-    """Stop training once the validation loss stops improving.
+    """Interrompe o treino quando a perda de validação para de melhorar.
 
-    Keeps a copy of the best weights seen so far so the fitted model is the one
-    that generalised best, not merely the last epoch executed.
+    Guarda uma cópia dos melhores pesos vistos, para que o modelo final seja o
+    que melhor generalizou, e não simplesmente o da última época executada.
     """
 
     def __init__(self, patience: int, min_delta: float = 1e-4) -> None:
-        """Configure the stopping criterion.
+        """Configura o critério de parada.
 
         Args:
-            patience: Number of epochs without improvement tolerated before
-                stopping. A non-positive value disables early stopping.
-            min_delta: Minimum loss decrease that counts as an improvement.
+            patience: Épocas sem melhora toleradas antes de parar. Um valor
+                menor ou igual a zero desliga o early stopping.
+            min_delta: Redução mínima da perda que conta como melhora.
         """
         self._patience = patience
         self._min_delta = min_delta
@@ -33,15 +33,15 @@ class EarlyStopping:
     def update(
         self, epoch: int, loss: float, state: Mapping[str, torch.Tensor]
     ) -> bool:
-        """Register an epoch result and report whether training should stop.
+        """Registra o resultado da época e diz se o treino deve parar.
 
         Args:
-            epoch: One-based epoch number.
-            loss: Validation loss observed at ``epoch``.
-            state: Model ``state_dict`` of that epoch.
+            epoch: Número da época, começando em um.
+            loss: Perda de validação observada na época.
+            state: ``state_dict`` do modelo naquela época.
 
         Returns:
-            ``True`` when patience is exhausted and training should stop.
+            ``True`` quando a paciência se esgotou e o treino deve parar.
         """
         if loss < self._best_loss - self._min_delta:
             self._best_loss = loss
@@ -55,28 +55,28 @@ class EarlyStopping:
         return self._patience > 0 and self._epochs_without_improvement >= self._patience
 
     def restore(self, network: nn.Module) -> None:
-        """Load the best observed weights back into ``network``.
+        """Recarrega em ``network`` os melhores pesos observados.
 
         Args:
-            network: Network to restore; left untouched if no epoch improved.
+            network: Rede a restaurar; fica intacta se nenhuma época melhorou.
         """
         if self._best_state:
             network.load_state_dict(self._best_state)
 
     @property
     def best_loss(self) -> float:
-        """Lowest validation loss observed.
+        """Menor perda de validação observada.
 
         Returns:
-            The best loss, or infinity when no epoch ran.
+            A melhor perda, ou infinito se nenhuma época rodou.
         """
         return self._best_loss
 
     @property
     def best_epoch(self) -> int:
-        """Epoch that produced the best validation loss.
+        """Época que produziu a menor perda de validação.
 
         Returns:
-            One-based epoch number, or ``0`` when no epoch improved.
+            Número da época (base um), ou ``0`` se nenhuma melhorou.
         """
         return self._best_epoch

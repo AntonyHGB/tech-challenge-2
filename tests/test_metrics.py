@@ -1,15 +1,14 @@
-"""Tests for the classification and ranking metrics."""
+"""Testes das métricas de classificação e de ranking."""
 
 from __future__ import annotations
 
 import numpy as np
 import pytest
 
-from recsys.metrics.classification import classification_metrics
-from recsys.metrics.ranking import ranking_metrics
+from recsys.metrics import classification_metrics, ranking_metrics
 
 
-def test_perfect_predictions_score_one():
+def test_previsoes_perfeitas_pontuam_um():
     labels = np.array([0.0, 1.0, 1.0, 0.0])
     scores = np.array([0.01, 0.99, 0.98, 0.02])
     metrics = classification_metrics(labels, scores)
@@ -19,20 +18,20 @@ def test_perfect_predictions_score_one():
     assert metrics["log_loss"] < 0.05
 
 
-def test_single_class_falls_back_to_neutral_auc():
+def test_classe_unica_cai_para_auc_neutro():
     metrics = classification_metrics(np.zeros(4), np.array([0.1, 0.2, 0.3, 0.4]))
     assert metrics["roc_auc"] == 0.5
     assert metrics["precision"] == 0.0
 
 
-def test_metric_names_cover_the_four_required_families():
+def test_metricas_cobrem_as_familias_exigidas():
     metrics = classification_metrics(np.array([0.0, 1.0]), np.array([0.2, 0.8]))
     assert {"accuracy", "precision", "recall", "f1", "roc_auc", "log_loss"} == set(
         metrics
     )
 
 
-def test_ranking_metrics_reward_the_correct_order():
+def test_ranking_premia_a_ordem_correta():
     users = np.array([1, 1, 1, 1])
     labels = np.array([1.0, 1.0, 0.0, 0.0])
     scores = np.array([0.9, 0.8, 0.2, 0.1])
@@ -43,7 +42,7 @@ def test_ranking_metrics_reward_the_correct_order():
     assert metrics["evaluated_users"] == 1.0
 
 
-def test_ranking_metrics_penalise_the_inverted_order():
+def test_ranking_penaliza_a_ordem_invertida():
     users = np.array([1, 1, 1, 1])
     labels = np.array([1.0, 1.0, 0.0, 0.0])
     scores = np.array([0.1, 0.2, 0.8, 0.9])
@@ -52,7 +51,7 @@ def test_ranking_metrics_penalise_the_inverted_order():
     assert metrics["ndcg_at_k"] == 0.0
 
 
-def test_users_without_relevant_items_are_skipped():
+def test_usuarios_sem_itens_relevantes_sao_ignorados():
     metrics = ranking_metrics(
         np.array([1, 1]), np.zeros(2), np.array([0.9, 0.1]), top_k=2
     )

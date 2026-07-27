@@ -1,4 +1,4 @@
-"""Model Registry promotion flow (Staging then Production)."""
+"""Fluxo de promoção no Model Registry (Staging e depois Production)."""
 
 from __future__ import annotations
 
@@ -14,14 +14,14 @@ STAGING_ALIAS = "candidate"
 
 @dataclass(frozen=True)
 class PromotedModel:
-    """Outcome of registering and promoting a model version.
+    """Resultado do registro e da promoção de uma versão de modelo.
 
     Attributes:
-        name: Registered model name.
-        version: Version created by the registration.
-        stage: Final stage of the version.
-        alias: Alias pointing at the production version.
-        run_id: Run that produced the promoted model.
+        name: Nome do modelo registrado.
+        version: Versão criada pelo registro.
+        stage: Estágio final da versão.
+        alias: Alias que aponta para a versão em produção.
+        run_id: Execução que produziu o modelo promovido.
     """
 
     name: str
@@ -34,16 +34,16 @@ class PromotedModel:
 def register_and_promote(
     client: MlflowClient, name: str, run_id: str, description: str
 ) -> PromotedModel:
-    """Register a run's model and walk it through Staging into Production.
+    """Registra o modelo de uma execução e o leva de Staging a Production.
 
     Args:
-        client: MLflow client bound to the tracking backend.
-        name: Registered model name.
-        run_id: Run holding the logged ``model`` artifact.
-        description: Human-readable note stored on the version.
+        client: Cliente do MLflow ligado ao backend de tracking.
+        name: Nome do modelo registrado.
+        run_id: Execução que contém o artefato ``model``.
+        description: Observação legível gravada na versão.
 
     Returns:
-        The promoted model version.
+        A versão promovida do modelo.
     """
     version = mlflow.register_model(model_uri=f"runs:/{run_id}/model", name=name)
     client.update_model_version(
@@ -63,16 +63,16 @@ def register_and_promote(
 
 
 def _transition(client: MlflowClient, name: str, version: str, stage: str) -> str:
-    """Move a version to ``stage``, tolerating backends without stages.
+    """Move a versão para ``stage``, tolerando backends sem estágios.
 
     Args:
-        client: MLflow client.
-        name: Registered model name.
-        version: Version to move.
-        stage: Target stage.
+        client: Cliente do MLflow.
+        name: Nome do modelo registrado.
+        version: Versão a mover.
+        stage: Estágio de destino.
 
     Returns:
-        The stage reached, or ``"aliased"`` when the backend dropped stages.
+        O estágio alcançado, ou ``"aliased"`` se o backend não tiver estágios.
     """
     try:
         client.transition_model_version_stage(
@@ -87,13 +87,13 @@ def _transition(client: MlflowClient, name: str, version: str, stage: str) -> st
 
 
 def _set_alias(client: MlflowClient, name: str, version: str, alias: str) -> None:
-    """Point an alias at a model version when the backend supports aliases.
+    """Aponta um alias para a versão, se o backend suportar aliases.
 
     Args:
-        client: MLflow client.
-        name: Registered model name.
-        version: Version the alias should point at.
-        alias: Alias name.
+        client: Cliente do MLflow.
+        name: Nome do modelo registrado.
+        version: Versão para a qual o alias deve apontar.
+        alias: Nome do alias.
     """
     try:
         client.set_registered_model_alias(name=name, alias=alias, version=version)

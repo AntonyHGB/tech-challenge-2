@@ -1,4 +1,4 @@
-"""Model-facing view of an interaction split."""
+"""Visão que os modelos têm de um conjunto de interações."""
 
 from __future__ import annotations
 
@@ -19,13 +19,13 @@ LABEL_COLUMN = "label"
 
 @dataclass(frozen=True)
 class InteractionData:
-    """Arrays every recommender consumes, decoupled from pandas and PyTorch.
+    """Arrays consumidos por todo recomendador, sem pandas nem PyTorch.
 
     Attributes:
-        user_indices: Encoded user index of each interaction.
-        item_indices: Encoded item index of each interaction.
-        features: Scaled behavioural features, shaped ``(n_rows, n_features)``.
-        labels: Binary relevance target of each interaction.
+        user_indices: Índice codificado do usuário de cada interação.
+        item_indices: Índice codificado do item de cada interação.
+        features: Features comportamentais, no formato ``(linhas, features)``.
+        labels: Alvo binário de relevância de cada interação.
     """
 
     user_indices: np.ndarray
@@ -39,22 +39,22 @@ class InteractionData:
         frame: pd.DataFrame,
         feature_columns: Sequence[str] = FEATURE_COLUMNS,
     ) -> InteractionData:
-        """Build the arrays from an engineered feature frame.
+        """Monta os arrays a partir de um frame já preparado.
 
         Args:
-            frame: Frame holding encoded indices, features and the label.
-            feature_columns: Feature columns to expose to the models.
+            frame: Frame com índices codificados, features e rótulo.
+            feature_columns: Colunas de features expostas aos modelos.
 
         Returns:
-            The corresponding :class:`InteractionData`.
+            O :class:`InteractionData` correspondente.
 
         Raises:
-            KeyError: If a required column is missing from ``frame``.
+            KeyError: Se faltar alguma coluna obrigatória em ``frame``.
         """
         required = {"user_index", "item_index", LABEL_COLUMN, *feature_columns}
         missing = sorted(required - set(frame.columns))
         if missing:
-            raise KeyError(f"Feature frame is missing columns: {missing}.")
+            raise KeyError(f"Colunas ausentes no frame de features: {missing}.")
         return cls(
             user_indices=frame["user_index"].to_numpy(dtype=np.int64),
             item_indices=frame["item_index"].to_numpy(dtype=np.int64),
@@ -64,17 +64,17 @@ class InteractionData:
 
     @property
     def n_features(self) -> int:
-        """Number of behavioural features per interaction.
+        """Quantidade de features comportamentais por interação.
 
         Returns:
-            Feature count.
+            Número de features.
         """
         return int(self.features.shape[1])
 
     def __len__(self) -> int:
-        """Return the number of interactions.
+        """Retorna a quantidade de interações.
 
         Returns:
-            Row count.
+            Número de linhas.
         """
         return int(self.user_indices.shape[0])

@@ -1,4 +1,4 @@
-"""Shared fixtures for the test suite."""
+"""Fixtures compartilhadas pela suíte de testes."""
 
 from __future__ import annotations
 
@@ -11,10 +11,10 @@ from recsys.data.interactions import FEATURE_COLUMNS, InteractionData
 
 @pytest.fixture
 def interaction_frame() -> pd.DataFrame:
-    """Build a small synthetic interaction frame.
+    """Monta um frame sintético pequeno de interações.
 
     Returns:
-        Frame with three users, four items and ten interactions.
+        Frame com três usuários, quatro itens e dez interações.
     """
     rows = [
         (1, 10, 5.0, 1000),
@@ -33,10 +33,10 @@ def interaction_frame() -> pd.DataFrame:
 
 @pytest.fixture
 def interaction_data() -> InteractionData:
-    """Build a learnable synthetic split for the model tests.
+    """Monta um split sintético com sinal aprendível para os testes de modelo.
 
     Returns:
-        Interactions whose label correlates with the item index.
+        Interações cujo rótulo se correlaciona com o índice do item.
     """
     rng = np.random.default_rng(7)
     size = 400

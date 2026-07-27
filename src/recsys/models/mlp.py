@@ -1,4 +1,4 @@
-"""Embedding-based MLP recommender implemented with PyTorch."""
+"""Recomendador MLP com embeddings, implementado em PyTorch."""
 
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ from recsys.seeding import set_global_seed
 
 
 class RecommenderNetwork(nn.Module):
-    """Two-tower style network: user/item embeddings plus behavioural features."""
+    """Rede com embeddings de usuário e item mais as features de navegação."""
 
     def __init__(
         self,
@@ -27,41 +27,42 @@ class RecommenderNetwork(nn.Module):
         hidden_dim: int,
         dropout: float,
     ) -> None:
-        """Build the embedding tables and the dense tower.
+        """Monta as tabelas de embedding e a torre densa.
 
         Args:
-            n_users: Size of the user vocabulary.
-            n_items: Size of the item vocabulary.
-            n_features: Number of behavioural features per interaction.
-            embedding_dim: Width of the user and item embeddings.
-            hidden_dim: Width of the first hidden layer.
-            dropout: Dropout probability applied after each hidden layer.
+            n_users: Tamanho do vocabulário de usuários.
+            n_items: Tamanho do vocabulário de itens.
+            n_features: Quantidade de features por interação.
+            embedding_dim: Dimensão dos embeddings de usuário e item.
+            hidden_dim: Largura da primeira camada oculta.
+            dropout: Probabilidade de dropout após cada camada oculta.
         """
         super().__init__()
+        half = max(hidden_dim // 2, 1)
         self.user_embedding = nn.Embedding(n_users, embedding_dim)
         self.item_embedding = nn.Embedding(n_items, embedding_dim)
         self.tower = nn.Sequential(
             nn.Linear(2 * embedding_dim + n_features, hidden_dim),
             nn.ReLU(),
             nn.Dropout(dropout),
-            nn.Linear(hidden_dim, max(hidden_dim // 2, 1)),
+            nn.Linear(hidden_dim, half),
             nn.ReLU(),
             nn.Dropout(dropout),
-            nn.Linear(max(hidden_dim // 2, 1), 1),
+            nn.Linear(half, 1),
         )
 
     def forward(
         self, users: torch.Tensor, items: torch.Tensor, features: torch.Tensor
     ) -> torch.Tensor:
-        """Score a batch of interactions.
+        """Pontua um lote de interações.
 
         Args:
-            users: Encoded user indices.
-            items: Encoded item indices.
-            features: Behavioural features.
+            users: Índices codificados de usuário.
+            items: Índices codificados de item.
+            features: Features comportamentais.
 
         Returns:
-            Unnormalised logits, one per interaction.
+            Logits sem normalização, um por interação.
         """
         merged = torch.cat(
             [self.user_embedding(users), self.item_embedding(items), features], dim=1
@@ -70,7 +71,7 @@ class RecommenderNetwork(nn.Module):
 
 
 class MLPRecommender(RecommenderModel):
-    """Neural recommender trained with binary cross-entropy and early stopping."""
+    """Recomendador neural treinado com entropia cruzada e early stopping."""
 
     name: ClassVar[str] = "mlp"
 
@@ -88,21 +89,21 @@ class MLPRecommender(RecommenderModel):
         early_stopping_patience: int = 5,
         seed: int = 42,
     ) -> None:
-        """Store the architecture and optimisation hyper-parameters.
+        """Guarda os hiperparâmetros de arquitetura e de otimização.
 
         Args:
-            n_users: Size of the user vocabulary.
-            n_items: Size of the item vocabulary.
-            embedding_dim: Width of the user and item embeddings.
-            hidden_dim: Width of the first hidden layer.
-            dropout: Dropout probability applied after each hidden layer.
-            epochs: Maximum number of training epochs.
-            batch_size: Mini-batch size.
-            learning_rate: Adam learning rate.
-            weight_decay: L2 penalty applied by Adam.
-            early_stopping_patience: Epochs without validation improvement
-                tolerated before stopping.
-            seed: Seed applied before the weights are initialised.
+            n_users: Tamanho do vocabulário de usuários.
+            n_items: Tamanho do vocabulário de itens.
+            embedding_dim: Dimensão dos embeddings de usuário e item.
+            hidden_dim: Largura da primeira camada oculta.
+            dropout: Probabilidade de dropout após cada camada oculta.
+            epochs: Número máximo de épocas de treino.
+            batch_size: Tamanho do lote.
+            learning_rate: Taxa de aprendizado do Adam.
+            weight_decay: Penalidade L2 aplicada pelo Adam.
+            early_stopping_patience: Épocas sem melhora na validação toleradas
+                antes de parar.
+            seed: Semente aplicada antes da inicialização dos pesos.
         """
         self.n_users = n_users
         self.n_items = n_items
@@ -126,12 +127,12 @@ class MLPRecommender(RecommenderModel):
     def fit(
         self, data: InteractionData, validation: InteractionData | None = None
     ) -> None:
-        """Train the network, early stopping on the validation loss.
+        """Treina a rede, parando cedo pela perda de validação.
 
         Args:
-            data: Training interactions.
-            validation: Interactions monitored for early stopping. Falls back to
-                the training loss when omitted.
+            data: Interações de treino.
+            validation: Interações monitoradas pelo early stopping. Sem elas, a
+                própria perda de treino é monitorada.
         """
         set_global_seed(self.seed)
         self._network = self._build_network(data.n_features)
@@ -145,20 +146,21 @@ class MLPRecommender(RecommenderModel):
         for epoch in range(1, self.epochs + 1):
             train_loss = self._train_epoch(loader, optimizer)
             monitored = self._monitored_loss(validation, train_loss)
-            self._record(train_loss, monitored)
+            self._history["train_loss"].append(train_loss)
+            self._history["validation_loss"].append(monitored)
             if stopper.update(epoch, monitored, self._network.state_dict()):
                 break
         stopper.restore(self._network)
         self._best_epoch = stopper.best_epoch
 
     def predict_proba(self, data: InteractionData) -> np.ndarray:
-        """Score interactions with the trained network.
+        """Pontua interações com a rede treinada.
 
         Args:
-            data: Interactions to score.
+            data: Interações a pontuar.
 
         Returns:
-            Relevance probabilities aligned with the input rows.
+            Probabilidades de relevância alinhadas com as linhas de entrada.
         """
         network = self._require_network()
         network.eval()
@@ -168,10 +170,10 @@ class MLPRecommender(RecommenderModel):
         return torch.sigmoid(logits).cpu().numpy().astype(np.float64)
 
     def hyperparameters(self) -> dict[str, Any]:
-        """Report the configuration MLflow logs for this run.
+        """Descreve a configuração registrada no MLflow.
 
         Returns:
-            Mapping of hyper-parameter name to value.
+            Mapa de hiperparâmetro para valor.
         """
         return {
             "embedding_dim": self.embedding_dim,
@@ -187,39 +189,39 @@ class MLPRecommender(RecommenderModel):
         }
 
     def training_history(self) -> dict[str, list[float]]:
-        """Return the per-epoch learning curves.
+        """Devolve as curvas de aprendizado por época.
 
         Returns:
-            Mapping with the ``train_loss`` and ``validation_loss`` curves.
+            Mapa com as curvas ``train_loss`` e ``validation_loss``.
         """
         return {key: list(values) for key, values in self._history.items()}
 
     @property
     def best_epoch(self) -> int:
-        """Epoch whose weights were restored by early stopping.
+        """Época cujos pesos o early stopping restaurou.
 
         Returns:
-            One-based epoch number, or ``0`` before training.
+            Número da época (base um), ou ``0`` antes do treino.
         """
         return self._best_epoch
 
     @property
     def epochs_run(self) -> int:
-        """Number of epochs actually executed.
+        """Quantidade de épocas de fato executadas.
 
         Returns:
-            Length of the training curve.
+            Tamanho da curva de treino.
         """
         return len(self._history["train_loss"])
 
     def _build_network(self, n_features: int) -> RecommenderNetwork:
-        """Instantiate the network for the given feature width.
+        """Instancia a rede para a largura de features informada.
 
         Args:
-            n_features: Number of behavioural features per interaction.
+            n_features: Quantidade de features por interação.
 
         Returns:
-            A freshly initialised network.
+            Uma rede recém-inicializada.
         """
         return RecommenderNetwork(
             n_users=self.n_users,
@@ -231,35 +233,31 @@ class MLPRecommender(RecommenderModel):
         )
 
     def _build_loader(self, data: InteractionData) -> DataLoader:
-        """Wrap the training arrays into a shuffled, reproducible loader.
+        """Embrulha os arrays de treino em um loader embaralhado e semeado.
 
         Args:
-            data: Training interactions.
+            data: Interações de treino.
 
         Returns:
-            A ``DataLoader`` seeded for reproducibility.
+            Um ``DataLoader`` com embaralhamento reprodutível.
         """
         dataset = TensorDataset(*self._to_tensors(data))
         generator = torch.Generator().manual_seed(self.seed)
         return DataLoader(
-            dataset,
-            batch_size=self.batch_size,
-            shuffle=True,
-            generator=generator,
-            drop_last=False,
+            dataset, batch_size=self.batch_size, shuffle=True, generator=generator
         )
 
     def _train_epoch(
         self, loader: DataLoader, optimizer: torch.optim.Optimizer
     ) -> float:
-        """Run one optimisation pass over the training data.
+        """Executa uma passagem de otimização sobre os dados de treino.
 
         Args:
-            loader: Batched training data.
-            optimizer: Optimiser updating the weights.
+            loader: Dados de treino em lotes.
+            optimizer: Otimizador que atualiza os pesos.
 
         Returns:
-            Sample-weighted mean training loss of the epoch.
+            Perda média de treino da época, ponderada por amostra.
         """
         network = self._require_network()
         network.train()
@@ -276,14 +274,14 @@ class MLPRecommender(RecommenderModel):
     def _monitored_loss(
         self, validation: InteractionData | None, fallback: float
     ) -> float:
-        """Compute the loss early stopping should monitor.
+        """Calcula a perda que o early stopping deve monitorar.
 
         Args:
-            validation: Optional validation interactions.
-            fallback: Loss used when no validation split is available.
+            validation: Interações de validação, se houver.
+            fallback: Perda usada quando não existe split de validação.
 
         Returns:
-            The monitored loss value.
+            O valor da perda monitorada.
         """
         if validation is None or len(validation) == 0:
             return fallback
@@ -294,27 +292,17 @@ class MLPRecommender(RecommenderModel):
             loss = self._criterion(network(users, items, features), labels)
         return float(loss)
 
-    def _record(self, train_loss: float, validation_loss: float) -> None:
-        """Append an epoch result to the learning curves.
-
-        Args:
-            train_loss: Training loss of the epoch.
-            validation_loss: Monitored loss of the epoch.
-        """
-        self._history["train_loss"].append(train_loss)
-        self._history["validation_loss"].append(validation_loss)
-
     @staticmethod
     def _to_tensors(
         data: InteractionData,
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-        """Convert an interaction split into PyTorch tensors.
+        """Converte um conjunto de interações em tensores do PyTorch.
 
         Args:
-            data: Interactions to convert.
+            data: Interações a converter.
 
         Returns:
-            Tuple of user, item, feature and label tensors.
+            Tupla com os tensores de usuário, item, features e rótulo.
         """
         return (
             torch.from_numpy(data.user_indices).long(),
@@ -324,14 +312,14 @@ class MLPRecommender(RecommenderModel):
         )
 
     def _require_network(self) -> RecommenderNetwork:
-        """Return the trained network, guarding unfitted usage.
+        """Devolve a rede treinada, barrando o uso antes do treino.
 
         Returns:
-            The trained network.
+            A rede treinada.
 
         Raises:
-            RuntimeError: If the model has not been fitted.
+            RuntimeError: Se o modelo ainda não tiver sido treinado.
         """
         if self._network is None:
-            raise RuntimeError("MLPRecommender must be fitted before scoring.")
+            raise RuntimeError("MLPRecommender exige fit antes de pontuar.")
         return self._network

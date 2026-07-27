@@ -1,4 +1,4 @@
-"""Factory for constructing recommender models by name."""
+"""Fábrica que constrói recomendadores a partir de um nome."""
 
 from __future__ import annotations
 
@@ -6,56 +6,77 @@ from collections.abc import Callable
 from typing import Any
 
 from recsys.models.base import RecommenderModel
+from recsys.models.baseline import LogisticRecommender, PopularityRecommender
+from recsys.models.mlp import MLPRecommender
+
+NEURAL_MODEL = MLPRecommender.name
+BASELINE_MODELS: tuple[str, ...] = (
+    PopularityRecommender.name,
+    LogisticRecommender.name,
+)
 
 
 class ModelFactory:
-    """Build :class:`RecommenderModel` instances from a string key.
+    """Cria instâncias de :class:`RecommenderModel` a partir de uma chave.
 
-    Implements the *Factory* design pattern. Models are registered under a name
-    and callers construct them without importing the concrete classes, keeping
-    creation logic in one place and open for extension (Open/Closed Principle).
+    Implementa o padrão *Factory*. Os modelos são registrados sob um nome e
+    quem chama os constrói sem importar as classes concretas, o que concentra a
+    criação em um só lugar e mantém o código aberto para extensão.
     """
 
     def __init__(self) -> None:
-        """Initialize an empty factory."""
+        """Cria uma fábrica vazia."""
         self._builders: dict[str, Callable[..., RecommenderModel]] = {}
 
     def register(self, name: str, builder: Callable[..., RecommenderModel]) -> None:
-        """Register a builder under ``name``.
+        """Registra um construtor sob ``name``.
 
         Args:
-            name: Unique key identifying the model.
-            builder: Callable returning a new ``RecommenderModel``.
+            name: Chave única que identifica o modelo.
+            builder: Chamável que devolve um novo ``RecommenderModel``.
 
         Raises:
-            ValueError: If ``name`` is already registered.
+            ValueError: Se ``name`` já estiver registrado.
         """
         if name in self._builders:
-            raise ValueError(f"Model '{name}' is already registered.")
+            raise ValueError(f"O modelo '{name}' já está registrado.")
         self._builders[name] = builder
 
     def create(self, name: str, **kwargs: Any) -> RecommenderModel:
-        """Instantiate the model registered under ``name``.
+        """Instancia o modelo registrado sob ``name``.
 
         Args:
-            name: Key of the model to build.
-            **kwargs: Keyword arguments forwarded to the builder.
+            name: Chave do modelo a construir.
+            **kwargs: Argumentos repassados ao construtor.
 
         Returns:
-            A new ``RecommenderModel`` instance.
+            Uma nova instância de ``RecommenderModel``.
 
         Raises:
-            KeyError: If ``name`` is not registered.
+            KeyError: Se ``name`` não estiver registrado.
         """
         if name not in self._builders:
-            available = ", ".join(self.available()) or "<none>"
-            raise KeyError(f"Unknown model '{name}'. Available: {available}.")
+            available = ", ".join(self.available()) or "<nenhum>"
+            raise KeyError(f"Modelo '{name}' desconhecido. Disponíveis: {available}.")
         return self._builders[name](**kwargs)
 
     def available(self) -> list[str]:
-        """Return the registered model names in sorted order.
+        """Lista os modelos registrados.
 
         Returns:
-            Sorted list of registered model names.
+            Nomes dos modelos registrados, ordenados.
         """
         return sorted(self._builders)
+
+
+def build_default_factory() -> ModelFactory:
+    """Cria a fábrica já carregada com os modelos do projeto.
+
+    Returns:
+        Fábrica capaz de construir a rede neural e os dois baselines.
+    """
+    factory = ModelFactory()
+    factory.register(MLPRecommender.name, MLPRecommender)
+    factory.register(PopularityRecommender.name, PopularityRecommender)
+    factory.register(LogisticRecommender.name, LogisticRecommender)
+    return factory

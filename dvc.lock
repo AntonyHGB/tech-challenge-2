@@ -7,14 +7,14 @@ stages:
       hash: md5
       md5: 325a6f09399d1c45671f187505e1a100
       size: 2483723
-    - path: src/recsys/data/loader.py
+    - path: src/recsys/data/dataset.py
       hash: md5
-      md5: a617ec2fb04fcecbd59a03fad403b357
-      size: 2469
+      md5: 46a30b577c249cfa916efaa7cf7475ae
+      size: 4008
     - path: src/recsys/pipelines/preprocess.py
       hash: md5
-      md5: 5040435c62e7f5d35d0b4869e207f269
-      size: 1928
+      md5: 46de1835c6e3757e7b254516fff1a394
+      size: 1581
     params:
       configs/params.yaml:
         data:
@@ -37,23 +37,23 @@ stages:
       size: 728931
     - path: src/recsys/data
       hash: md5
-      md5: b99bf069c0b7b232be6b4c0308a8a31b.dir
-      size: 35963
-      nfiles: 12
+      md5: 95b0da012a70fcbc1b7b5d6c92163a88.dir
+      size: 13435
+      nfiles: 5
     - path: src/recsys/features
       hash: md5
-      md5: db6cf7e9f00b39f5b42c9726f91d06ae.dir
-      size: 31186
-      nfiles: 10
+      md5: 91307600f6c7c42c54bf8dbab9f60fc5.dir
+      size: 9863
+      nfiles: 3
     - path: src/recsys/pipelines/feature_eng.py
       hash: md5
-      md5: 26cb885696dcb2fd9d3037888297232e
-      size: 5254
+      md5: f49b0bd8e91aba9d145892c9125907e1
+      size: 4818
     - path: src/recsys/preprocessing
       hash: md5
-      md5: fb534627ebe74e7787c84ff2b766af01.dir
-      size: 23290
-      nfiles: 10
+      md5: f9de7adb2aa9f771753738aa127a7ee2.dir
+      size: 9486
+      nfiles: 4
     params:
       configs/params.yaml:
         data:
@@ -101,25 +101,24 @@ stages:
       hash: md5
       md5: 8d67cd308bb6d6309e01e88335ad61c4
       size: 174344
-    - path: src/recsys/metrics
+    - path: src/recsys/metrics.py
       hash: md5
-      md5: fd4741267e015e4b2c64f40891f97e13.dir
-      size: 15578
-      nfiles: 8
+      md5: 7c222648bae593bf44aaa220035351ae
+      size: 5528
     - path: src/recsys/models
       hash: md5
-      md5: fa23b077a7cada73bbb7b18079c406b9.dir
-      size: 61346
-      nfiles: 16
+      md5: 54a98d273f001bc6ceab29bbe1168ef9.dir
+      size: 25255
+      nfiles: 7
     - path: src/recsys/pipelines/train.py
       hash: md5
-      md5: c8ab73673e022497c389b0839e61f9d0
-      size: 6565
+      md5: ff9fd2341d58a1c227fbe4c85b3844b9
+      size: 5967
     - path: src/recsys/tracking
       hash: md5
-      md5: 262f59a73f9e054f6959954271ff5983.dir
-      size: 26352
-      nfiles: 8
+      md5: a4373238c22fd8f66d488ad89676671e.dir
+      size: 10825
+      nfiles: 4
     params:
       configs/params.yaml:
         baselines:
@@ -145,11 +144,11 @@ stages:
     outs:
     - path: models/mlp/model.joblib
       hash: md5
-      md5: 0b10d202d9c37ecf5c11edaf8cc8efee
+      md5: 50220405fe9feb2bbcbca5e13235fad8
       size: 576426
     - path: reports/train/mlp.json
       hash: md5
-      md5: 5319ca5095c024626660fada3ff421c6
+      md5: baa6b3dae5a5f1390a046f4111f10621
       size: 840
   train@popularity:
     cmd: python -m recsys.pipelines.train --model popularity
@@ -166,25 +165,24 @@ stages:
       hash: md5
       md5: 8d67cd308bb6d6309e01e88335ad61c4
       size: 174344
-    - path: src/recsys/metrics
+    - path: src/recsys/metrics.py
       hash: md5
-      md5: fd4741267e015e4b2c64f40891f97e13.dir
-      size: 15578
-      nfiles: 8
+      md5: 7c222648bae593bf44aaa220035351ae
+      size: 5528
     - path: src/recsys/models
       hash: md5
-      md5: fa23b077a7cada73bbb7b18079c406b9.dir
-      size: 61346
-      nfiles: 16
+      md5: 54a98d273f001bc6ceab29bbe1168ef9.dir
+      size: 25255
+      nfiles: 7
     - path: src/recsys/pipelines/train.py
       hash: md5
-      md5: c8ab73673e022497c389b0839e61f9d0
-      size: 6565
+      md5: ff9fd2341d58a1c227fbe4c85b3844b9
+      size: 5967
     - path: src/recsys/tracking
       hash: md5
-      md5: 262f59a73f9e054f6959954271ff5983.dir
-      size: 26352
-      nfiles: 8
+      md5: a4373238c22fd8f66d488ad89676671e.dir
+      size: 10825
+      nfiles: 4
     params:
       configs/params.yaml:
         baselines:
@@ -214,7 +212,7 @@ stages:
       size: 43655
     - path: reports/train/popularity.json
       hash: md5
-      md5: c0438a5c7af3bb2a66676167d79b94ea
+      md5: 8d8e1424a60877597e5d00799320d043
       size: 623
   train@logistic:
     cmd: python -m recsys.pipelines.train --model logistic
@@ -231,25 +229,24 @@ stages:
       hash: md5
       md5: 8d67cd308bb6d6309e01e88335ad61c4
       size: 174344
-    - path: src/recsys/metrics
+    - path: src/recsys/metrics.py
       hash: md5
-      md5: fd4741267e015e4b2c64f40891f97e13.dir
-      size: 15578
-      nfiles: 8
+      md5: 7c222648bae593bf44aaa220035351ae
+      size: 5528
     - path: src/recsys/models
       hash: md5
-      md5: fa23b077a7cada73bbb7b18079c406b9.dir
-      size: 61346
-      nfiles: 16
+      md5: 54a98d273f001bc6ceab29bbe1168ef9.dir
+      size: 25255
+      nfiles: 7
     - path: src/recsys/pipelines/train.py
       hash: md5
-      md5: c8ab73673e022497c389b0839e61f9d0
-      size: 6565
+      md5: ff9fd2341d58a1c227fbe4c85b3844b9
+      size: 5967
     - path: src/recsys/tracking
       hash: md5
-      md5: 262f59a73f9e054f6959954271ff5983.dir
-      size: 26352
-      nfiles: 8
+      md5: a4373238c22fd8f66d488ad89676671e.dir
+      size: 10825
+      nfiles: 4
     params:
       configs/params.yaml:
         baselines:
@@ -279,7 +276,7 @@ stages:
       size: 957
     - path: reports/train/logistic.json
       hash: md5
-      md5: d3692222edd6a58282e801e2830417d2
+      md5: 47c119df377b9a2af43cc7dcc1dd828e
       size: 655
   evaluate:
     cmd: python -m recsys.pipelines.evaluate
@@ -298,7 +295,7 @@ stages:
       size: 957
     - path: models/mlp/model.joblib
       hash: md5
-      md5: 0b10d202d9c37ecf5c11edaf8cc8efee
+      md5: 50220405fe9feb2bbcbca5e13235fad8
       size: 576426
     - path: models/popularity/model.joblib
       hash: md5
@@ -306,30 +303,28 @@ stages:
       size: 43655
     - path: reports/train/logistic.json
       hash: md5
-      md5: d3692222edd6a58282e801e2830417d2
+      md5: 47c119df377b9a2af43cc7dcc1dd828e
       size: 655
     - path: reports/train/mlp.json
       hash: md5
-      md5: 5319ca5095c024626660fada3ff421c6
+      md5: baa6b3dae5a5f1390a046f4111f10621
       size: 840
     - path: reports/train/popularity.json
       hash: md5
-      md5: c0438a5c7af3bb2a66676167d79b94ea
+      md5: 8d8e1424a60877597e5d00799320d043
       size: 623
-    - path: src/recsys/metrics
+    - path: src/recsys/metrics.py
       hash: md5
-      md5: fd4741267e015e4b2c64f40891f97e13.dir
-      size: 15578
-      nfiles: 8
+      md5: 7c222648bae593bf44aaa220035351ae
+      size: 5528
     - path: src/recsys/pipelines/evaluate.py
       hash: md5
-      md5: ebd8916986de5ec583bd78fec9760ef9
-      size: 8599
-    - path: src/recsys/serving
+      md5: 1e1e43d6bc42183c32b0433ad6c4df09
+      size: 7910
+    - path: src/recsys/ranker.py
       hash: md5
-      md5: 0a322f962b5e6bf2d3e79c74525fa607.dir
-      size: 9562
-      nfiles: 4
+      md5: 5669011fed19e1fb840c56fd4be821a3
+      size: 3785
     params:
       configs/params.yaml:
         evaluation:
@@ -340,15 +335,15 @@ stages:
     outs:
     - path: reports/comparison.md
       hash: md5
-      md5: 2f63094352d15d6b9433db286b121868
-      size: 627
+      md5: 999111ca92b6e5d23a4008881e410faf
+      size: 629
     - path: reports/metrics.json
       hash: md5
       md5: 6426ba896b1b883859fd2de4a3a054e6
       size: 1407
     - path: reports/model_registry.json
       hash: md5
-      md5: 8a5d646f0846fa7ec25a266fee1b60f2
+      md5: f56948c3908de2879935fb17fd94d4a0
       size: 164
     - path: reports/sample_recommendations.json
       hash: md5

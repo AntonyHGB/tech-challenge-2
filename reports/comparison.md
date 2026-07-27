@@ -1,4 +1,4 @@
-# Comparacao de modelos (split de teste)
+# Comparação de modelos (split de teste)
 
 | modelo | accuracy | evaluated_users | f1 | log_loss | n_interactions | ndcg_at_k | precision | precision_at_k | recall | recall_at_k | roc_auc |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |

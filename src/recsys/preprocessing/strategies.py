@@ -1,9 +1,9 @@
-"""Concrete preprocessing strategies backed by Scikit-Learn scalers."""
+"""Estratégias de pré-processamento apoiadas em scalers do Scikit-Learn."""
 
 from __future__ import annotations
 
 from abc import abstractmethod
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 
 import numpy as np
 from sklearn.base import TransformerMixin
@@ -11,63 +11,62 @@ from sklearn.preprocessing import MinMaxScaler as SklearnMinMax
 from sklearn.preprocessing import StandardScaler as SklearnStandard
 
 from recsys.preprocessing.base import PreprocessingStrategy
+from recsys.preprocessing.pipeline import PreprocessingPipeline
 
 
 class SklearnScalerStrategy(PreprocessingStrategy):
-    """Adapt a Scikit-Learn scaler to the strategy interface.
+    """Adapta um scaler do Scikit-Learn à interface de estratégia.
 
-    Applies the *Template Method* pattern: this class owns the fit/transform
-    skeleton (validation, reshaping, fitted-state guard) and defers the single
-    varying step — which scaler to instantiate — to :meth:`_build_scaler`.
+    Aplica o padrão *Template Method*: esta classe detém o esqueleto de
+    fit/transform (validação, mudança de formato e guarda de estado) e delega
+    o único passo variável — qual scaler instanciar — a :meth:`_build_scaler`.
     """
 
     def __init__(self) -> None:
-        """Initialize an unfitted strategy."""
+        """Cria a estratégia ainda não ajustada."""
         self._scaler: TransformerMixin | None = None
 
     @abstractmethod
     def _build_scaler(self) -> TransformerMixin:
-        """Create the Scikit-Learn scaler this strategy delegates to.
+        """Cria o scaler do Scikit-Learn ao qual a estratégia delega.
 
         Returns:
-            An unfitted scaler instance.
+            Uma instância de scaler ainda não ajustada.
         """
 
     def fit(self, values: Sequence[float]) -> SklearnScalerStrategy:
-        """Fit the underlying scaler on ``values``.
+        """Ajusta o scaler interno em ``values``.
 
         Args:
-            values: Non-empty training values.
+            values: Valores de treino, não vazios.
 
         Returns:
-            The fitted strategy.
+            A estratégia ajustada.
 
         Raises:
-            ValueError: If ``values`` is empty.
+            ValueError: Se ``values`` estiver vazio.
         """
         if len(values) == 0:
-            raise ValueError(f"Cannot fit {type(self).__name__} on an empty sequence.")
+            raise ValueError(f"{type(self).__name__} não ajusta sequência vazia.")
         scaler = self._build_scaler()
         scaler.fit(_as_column(values))
         self._scaler = scaler
         return self
 
     def transform(self, values: Sequence[float]) -> list[float]:
-        """Scale ``values`` with the fitted scaler.
+        """Escalona ``values`` com o scaler já ajustado.
 
         Args:
-            values: Values to scale.
+            values: Valores a escalonar.
 
         Returns:
-            Scaled values, in input order.
+            Valores escalonados, na ordem da entrada.
 
         Raises:
-            RuntimeError: If called before :meth:`fit`.
+            RuntimeError: Se chamado antes de :meth:`fit`.
         """
         if self._scaler is None:
-            raise RuntimeError(
-                f"{type(self).__name__} must be fitted before transform()."
-            )
+            raise RuntimeError(f"{type(self).__name__} exige fit antes de transform.")
         if len(values) == 0:
             return []
         scaled = self._scaler.transform(_as_column(values))
@@ -75,36 +74,82 @@ class SklearnScalerStrategy(PreprocessingStrategy):
 
 
 class MinMaxScaler(SklearnScalerStrategy):
-    """Scale numeric values into the ``[0, 1]`` range."""
+    """Escalona os valores numéricos para o intervalo ``[0, 1]``."""
 
     def _build_scaler(self) -> TransformerMixin:
-        """Return a Scikit-Learn min-max scaler.
+        """Retorna um scaler min-max do Scikit-Learn.
 
         Returns:
-            The unfitted scaler.
+            O scaler ainda não ajustado.
         """
         return SklearnMinMax()
 
 
 class StandardScaler(SklearnScalerStrategy):
-    """Standardize values to zero mean and unit variance."""
+    """Padroniza os valores para média zero e variância unitária."""
 
     def _build_scaler(self) -> TransformerMixin:
-        """Return a Scikit-Learn standard scaler.
+        """Retorna um scaler padrão do Scikit-Learn.
 
         Returns:
-            The unfitted scaler.
+            O scaler ainda não ajustado.
         """
         return SklearnStandard()
 
 
-def _as_column(values: Sequence[float]) -> np.ndarray:
-    """Reshape a flat sequence into the 2D array Scikit-Learn expects.
+STRATEGY_BUILDERS: dict[str, Callable[[], PreprocessingStrategy]] = {
+    "minmax": MinMaxScaler,
+    "standard": StandardScaler,
+}
 
-    Args:
-        values: Flat sequence of numbers.
+
+def available_strategies() -> list[str]:
+    """Lista as estratégias que a configuração pode escolher.
 
     Returns:
-        Array shaped ``(len(values), 1)``.
+        Nomes das estratégias, ordenados.
+    """
+    return sorted(STRATEGY_BUILDERS)
+
+
+def build_strategy(name: str) -> PreprocessingStrategy:
+    """Instancia a estratégia registrada sob ``name``.
+
+    Args:
+        name: Chave da estratégia, como escrita no arquivo de parâmetros.
+
+    Returns:
+        Uma estratégia nova, ainda não ajustada.
+
+    Raises:
+        KeyError: Se ``name`` não estiver registrado.
+    """
+    if name not in STRATEGY_BUILDERS:
+        available = ", ".join(available_strategies())
+        raise KeyError(f"Estratégia '{name}' desconhecida. Disponíveis: {available}.")
+    return STRATEGY_BUILDERS[name]()
+
+
+def build_pipeline(name: str, columns: Sequence[str]) -> PreprocessingPipeline:
+    """Monta um pipeline com a mesma estratégia para todas as colunas.
+
+    Args:
+        name: Chave da estratégia aplicada a cada coluna.
+        columns: Colunas de features a escalonar.
+
+    Returns:
+        Pipeline com uma instância de estratégia por coluna.
+    """
+    return PreprocessingPipeline({column: build_strategy(name) for column in columns})
+
+
+def _as_column(values: Sequence[float]) -> np.ndarray:
+    """Converte uma sequência simples no array 2D que o Scikit-Learn espera.
+
+    Args:
+        values: Sequência plana de números.
+
+    Returns:
+        Array no formato ``(len(values), 1)``.
     """
     return np.asarray(values, dtype=np.float64).reshape(-1, 1)

@@ -1,1 +1,1 @@
-"""Executable DVC pipeline stages."""
+"""Stages executáveis do pipeline DVC."""

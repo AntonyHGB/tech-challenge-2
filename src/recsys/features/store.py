@@ -1,28 +1,105 @@
-"""Persistable bundle with everything the serving path needs."""
+"""Agregados de comportamento e o pacote de artefatos de features."""
 
 from __future__ import annotations
 
-import json
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+
+import pandas as pd
+from pydantic import BaseModel, ConfigDict
 
 from recsys.data.encoders import IdEncoder
 from recsys.data.interactions import FEATURE_COLUMNS
-from recsys.features.statistics import InteractionStatistics
 
 
-@dataclass(frozen=True)
-class FeatureStore:
-    """Fitted feature artefacts shared by training, evaluation and serving.
+class InteractionStatistics(BaseModel):
+    """Agregados de navegação usados como features comportamentais.
+
+    São calculados apenas no split de treino e depois aplicados aos splits de
+    holdout, o que mantém informação do futuro fora das features. Entidades
+    desconhecidas recaem em valores neutros.
 
     Attributes:
-        statistics: Behavioural aggregates learned on the training split.
-        user_classes: Raw user identifiers in encoded-index order.
-        item_classes: Raw item identifiers in encoded-index order.
-        feature_columns: Feature columns handed to the models.
-        positive_threshold: Rating above which an interaction is relevant.
+        user_activity: Quantidade de interações por usuário.
+        item_popularity: Quantidade de interações por item.
+        user_mean_rating: Nota média atribuída por cada usuário.
+        item_mean_rating: Nota média recebida por cada item.
+        global_mean_rating: Nota média de todo o split de treino.
     """
+
+    model_config = ConfigDict(frozen=True)
+
+    user_activity: dict[int, float]
+    item_popularity: dict[int, float]
+    user_mean_rating: dict[int, float]
+    item_mean_rating: dict[int, float]
+    global_mean_rating: float
+
+    @classmethod
+    def from_frame(cls, train: pd.DataFrame) -> InteractionStatistics:
+        """Calcula os agregados a partir das interações de treino.
+
+        Args:
+            train: Split de treino com ``user_id``, ``item_id`` e ``rating``.
+
+        Returns:
+            As estatísticas calculadas.
+        """
+        return cls(
+            user_activity=_count(train, "user_id"),
+            item_popularity=_count(train, "item_id"),
+            user_mean_rating=_mean_rating(train, "user_id"),
+            item_mean_rating=_mean_rating(train, "item_id"),
+            global_mean_rating=float(train["rating"].mean()),
+        )
+
+    def attach(self, frame: pd.DataFrame) -> pd.DataFrame:
+        """Acrescenta as colunas de features comportamentais a ``frame``.
+
+        Args:
+            frame: Frame de interações a enriquecer.
+
+        Returns:
+            Cópia de ``frame`` com as quatro features anexadas.
+        """
+        mean = self.global_mean_rating
+        return frame.assign(
+            user_activity=_map(frame, "user_id", self.user_activity, 0.0),
+            item_popularity=_map(frame, "item_id", self.item_popularity, 0.0),
+            user_mean_rating=_map(frame, "user_id", self.user_mean_rating, mean),
+            item_mean_rating=_map(frame, "item_id", self.item_mean_rating, mean),
+        )
+
+    def feature_row(self, user_id: int, item_id: int) -> dict[str, float]:
+        """Monta as features de um único par candidato.
+
+        Args:
+            user_id: Identificador bruto do usuário.
+            item_id: Identificador bruto do item.
+
+        Returns:
+            Mapa de nome da feature para o valor, com fallback quando inédito.
+        """
+        mean = self.global_mean_rating
+        return {
+            "user_activity": self.user_activity.get(user_id, 0.0),
+            "item_popularity": self.item_popularity.get(item_id, 0.0),
+            "user_mean_rating": self.user_mean_rating.get(user_id, mean),
+            "item_mean_rating": self.item_mean_rating.get(item_id, mean),
+        }
+
+
+class FeatureStore(BaseModel):
+    """Artefatos de features compartilhados por treino, avaliação e serving.
+
+    Attributes:
+        statistics: Agregados aprendidos no split de treino.
+        user_classes: Identificadores de usuário na ordem dos índices.
+        item_classes: Identificadores de item na ordem dos índices.
+        feature_columns: Colunas de features entregues aos modelos.
+        positive_threshold: Nota a partir da qual a interação é relevante.
+    """
+
+    model_config = ConfigDict(frozen=True)
 
     statistics: InteractionStatistics
     user_classes: list[int]
@@ -32,80 +109,104 @@ class FeatureStore:
 
     @property
     def n_users(self) -> int:
-        """Size of the user vocabulary.
+        """Tamanho do vocabulário de usuários.
 
         Returns:
-            Number of distinct users seen during training.
+            Quantidade de usuários distintos vistos no treino.
         """
         return len(self.user_classes)
 
     @property
     def n_items(self) -> int:
-        """Size of the item vocabulary.
+        """Tamanho do vocabulário de itens.
 
         Returns:
-            Number of distinct items seen during training.
+            Quantidade de itens distintos vistos no treino.
         """
         return len(self.item_classes)
 
     def user_encoder(self) -> IdEncoder:
-        """Rebuild the fitted user encoder.
+        """Recria o encoder de usuários.
 
         Returns:
-            Encoder mapping raw user ids to indices.
+            Encoder que mapeia identificadores de usuário para índices.
         """
-        return IdEncoder.from_classes(self.user_classes)
+        return IdEncoder(self.user_classes)
 
     def item_encoder(self) -> IdEncoder:
-        """Rebuild the fitted item encoder.
+        """Recria o encoder de itens.
 
         Returns:
-            Encoder mapping raw item ids to indices.
+            Encoder que mapeia identificadores de item para índices.
         """
-        return IdEncoder.from_classes(self.item_classes)
+        return IdEncoder(self.item_classes)
 
     def save(self, path: Path) -> Path:
-        """Write the store as JSON.
+        """Grava o pacote de artefatos em JSON.
 
         Args:
-            path: Destination file; parent directories are created.
+            path: Arquivo de destino; os diretórios são criados.
 
         Returns:
-            The path written to.
+            O caminho onde o arquivo foi escrito.
         """
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(self._payload(), indent=2), encoding="utf-8")
+        path.write_text(self.model_dump_json(indent=2), encoding="utf-8")
         return path
 
     @classmethod
     def load(cls, path: Path) -> FeatureStore:
-        """Read a store previously written by :meth:`save`.
+        """Lê um pacote gravado por :meth:`save`.
 
         Args:
-            path: File holding the serialised store.
+            path: Arquivo com o pacote serializado.
 
         Returns:
-            The restored store.
+            O pacote restaurado.
         """
-        payload = json.loads(path.read_text(encoding="utf-8"))
-        return cls(
-            statistics=InteractionStatistics.from_dict(payload["statistics"]),
-            user_classes=[int(value) for value in payload["user_classes"]],
-            item_classes=[int(value) for value in payload["item_classes"]],
-            feature_columns=tuple(payload["feature_columns"]),
-            positive_threshold=float(payload["positive_threshold"]),
-        )
+        return cls.model_validate_json(path.read_text(encoding="utf-8"))
 
-    def _payload(self) -> dict[str, Any]:
-        """Build the JSON-compatible representation of the store.
 
-        Returns:
-            Mapping ready to be serialised.
-        """
-        return {
-            "statistics": self.statistics.to_dict(),
-            "user_classes": self.user_classes,
-            "item_classes": self.item_classes,
-            "feature_columns": list(self.feature_columns),
-            "positive_threshold": self.positive_threshold,
-        }
+def _count(frame: pd.DataFrame, column: str) -> dict[int, float]:
+    """Conta as interações por identificador.
+
+    Args:
+        frame: Interações de treino.
+        column: Coluna de identificador usada no agrupamento.
+
+    Returns:
+        Mapa de identificador para a contagem de interações.
+    """
+    counts = frame.groupby(column).size()
+    return {int(key): float(value) for key, value in counts.items()}
+
+
+def _mean_rating(frame: pd.DataFrame, column: str) -> dict[int, float]:
+    """Calcula a nota média por identificador.
+
+    Args:
+        frame: Interações de treino.
+        column: Coluna de identificador usada no agrupamento.
+
+    Returns:
+        Mapa de identificador para a nota média.
+    """
+    means = frame.groupby(column)["rating"].mean()
+    return {int(key): float(value) for key, value in means.items()}
+
+
+def _map(
+    frame: pd.DataFrame, column: str, values: dict[int, float], default: float
+) -> pd.Series:
+    """Traduz uma coluna do frame pelo agregado, com valor padrão.
+
+    Args:
+        frame: Frame de origem.
+        column: Coluna com os identificadores.
+        values: Agregado indexado por identificador.
+        default: Valor usado para identificadores ausentes.
+
+    Returns:
+        Série de features alinhada com ``frame``.
+    """
+    return frame[column].map(values).fillna(default).astype(float)

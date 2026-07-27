@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # ---------------------------------------------------------------------------
-# Stage 1 (builder): resolve the dependencies from the committed lock file.
+# Estágio 1 (builder): resolve as dependências a partir do lock file commitado.
 # ---------------------------------------------------------------------------
 FROM python:3.12-slim AS builder
 
@@ -14,13 +14,13 @@ WORKDIR /app
 
 RUN pip install "poetry==${POETRY_VERSION}"
 
-# Only the dependency manifests, so the layer is cached until they change.
+# Só os manifestos de dependência, para a camada ficar em cache até mudarem.
 COPY pyproject.toml poetry.lock README.md ./
 
 RUN poetry install --only main --no-root && rm -rf "${HOME}/.cache"
 
 # ---------------------------------------------------------------------------
-# Stage 2 (runtime): slim image carrying just the virtualenv and the app.
+# Estágio 2 (runtime): imagem enxuta, apenas com o virtualenv e a aplicação.
 # ---------------------------------------------------------------------------
 FROM python:3.12-slim AS runtime
 
@@ -28,7 +28,7 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONPATH=/app/src \
     PATH="/app/.venv/bin:${PATH}" \
-    # O DVC usa pygit2; sem o binário git, o GitPython do MLflow apenas avisa.
+    # O DVC usa pygit2; sem o binário git, o GitPython do MLflow só avisaria.
     GIT_PYTHON_REFRESH=quiet
 
 WORKDIR /app

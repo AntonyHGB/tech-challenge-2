@@ -3,7 +3,7 @@ stages:
     cmd: python -m recsys.pipelines.preprocess
     deps:
       - data/raw/ratings.csv
-      - src/recsys/data/loader.py
+      - src/recsys/data/dataset.py
       - src/recsys/pipelines/preprocess.py
     params:
       - configs/params.yaml:
@@ -43,7 +43,7 @@ stages:
         - data/processed/train.parquet
         - data/processed/validation.parquet
         - data/processed/feature_store.json
-        - src/recsys/metrics
+        - src/recsys/metrics.py
         - src/recsys/models
         - src/recsys/tracking
         - src/recsys/pipelines/train.py
@@ -71,8 +71,8 @@ stages:
       - reports/train/logistic.json
       - reports/train/mlp.json
       - reports/train/popularity.json
-      - src/recsys/metrics
-      - src/recsys/serving
+      - src/recsys/metrics.py
+      - src/recsys/ranker.py
       - src/recsys/pipelines/evaluate.py
     params:
       - configs/params.yaml:

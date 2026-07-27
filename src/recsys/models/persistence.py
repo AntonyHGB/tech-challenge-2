@@ -1,4 +1,4 @@
-"""Serialisation of trained recommenders to disk."""
+"""Gravação e leitura em disco dos recomendadores treinados."""
 
 from __future__ import annotations
 
@@ -10,14 +10,14 @@ from recsys.models.base import RecommenderModel
 
 
 def save_model(model: RecommenderModel, path: Path) -> Path:
-    """Persist a trained recommender.
+    """Grava um recomendador treinado.
 
     Args:
-        model: Fitted recommender.
-        path: Destination file; parent directories are created.
+        model: Recomendador já treinado.
+        path: Arquivo de destino; os diretórios são criados.
 
     Returns:
-        The path the model was written to.
+        O caminho onde o modelo foi gravado.
     """
     path.parent.mkdir(parents=True, exist_ok=True)
     joblib.dump(model, path)
@@ -25,21 +25,21 @@ def save_model(model: RecommenderModel, path: Path) -> Path:
 
 
 def load_model(path: Path) -> RecommenderModel:
-    """Load a recommender previously written by :func:`save_model`.
+    """Lê um recomendador gravado por :func:`save_model`.
 
     Args:
-        path: File holding the serialised model.
+        path: Arquivo com o modelo serializado.
 
     Returns:
-        The deserialised recommender.
+        O recomendador desserializado.
 
     Raises:
-        FileNotFoundError: If ``path`` does not exist.
-        TypeError: If the file does not hold a recommender.
+        FileNotFoundError: Se ``path`` não existir.
+        TypeError: Se o arquivo não contiver um recomendador.
     """
     if not path.exists():
-        raise FileNotFoundError(f"No model artifact at '{path}'.")
+        raise FileNotFoundError(f"Nenhum modelo em '{path}'.")
     model = joblib.load(path)
     if not isinstance(model, RecommenderModel):
-        raise TypeError(f"'{path}' does not contain a RecommenderModel.")
+        raise TypeError(f"'{path}' não contém um RecommenderModel.")
     return model

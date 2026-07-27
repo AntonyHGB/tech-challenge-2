@@ -1,4 +1,4 @@
-"""MLflow ``pyfunc`` wrapper that makes any recommender deployable."""
+"""Empacotamento ``pyfunc`` que torna qualquer recomendador implantável."""
 
 from __future__ import annotations
 
@@ -13,27 +13,56 @@ import pandas as pd
 from recsys.data.interactions import LABEL_COLUMN, InteractionData
 from recsys.models.persistence import load_model
 
-PIP_REQUIREMENTS: list[str] = [
-    "torch",
-    "scikit-learn",
-    "numpy",
-    "pandas",
-    "joblib",
-]
+PIP_REQUIREMENTS: list[str] = ["torch", "scikit-learn", "numpy", "pandas", "joblib"]
 EXAMPLE_ROWS = 5
+
+
+class RecommenderPyfunc(mlflow.pyfunc.PythonModel):
+    """Serve um recomendador salvo pela interface genérica do MLflow.
+
+    O empacotamento mantém o registry independente de framework: a rede em
+    PyTorch e os baselines do Scikit-Learn são registrados, versionados e
+    promovidos exatamente do mesmo jeito.
+    """
+
+    def load_context(self, context: Any) -> None:
+        """Carrega o recomendador serializado junto ao modelo.
+
+        Args:
+            context: Contexto do MLflow, que expõe os artefatos registrados.
+        """
+        self._model = load_model(Path(context.artifacts["model"]))
+
+    def predict(
+        self,
+        context: Any,
+        model_input: pd.DataFrame,
+        params: dict[str, Any] | None = None,
+    ) -> np.ndarray:
+        """Pontua um lote de interações candidatas.
+
+        Args:
+            context: Contexto do MLflow (não usado; o modelo já está em memória).
+            model_input: Frame com índices codificados e features escalonadas.
+            params: Parâmetros de inferência, não utilizados.
+
+        Returns:
+            Probabilidade de relevância de cada linha.
+        """
+        return self._model.predict_proba(InteractionData.from_frame(model_input))
 
 
 def build_input_example(
     data: InteractionData, feature_columns: Sequence[str]
 ) -> pd.DataFrame:
-    """Build the input example MLflow uses to infer the model signature.
+    """Monta o exemplo de entrada com que o MLflow infere a assinatura.
 
     Args:
-        data: Interactions to sample the example from.
-        feature_columns: Names of the behavioural feature columns.
+        data: Interações de onde tirar o exemplo.
+        feature_columns: Nomes das colunas de features comportamentais.
 
     Returns:
-        A few rows shaped exactly like the serving payload.
+        Algumas linhas no mesmo formato da carga usada em produção.
     """
     rows = min(EXAMPLE_ROWS, len(data))
     example = pd.DataFrame(
@@ -46,38 +75,3 @@ def build_input_example(
     for position, column in enumerate(feature_columns):
         example[column] = data.features[:rows, position]
     return example
-
-
-class RecommenderPyfunc(mlflow.pyfunc.PythonModel):
-    """Serve a persisted recommender through the generic MLflow interface.
-
-    Wrapping the model keeps the registry framework-agnostic: the PyTorch net
-    and the Scikit-Learn baselines are logged, versioned and promoted exactly
-    the same way.
-    """
-
-    def load_context(self, context: Any) -> None:
-        """Load the serialised recommender bundled with the model.
-
-        Args:
-            context: MLflow context exposing the logged artifacts.
-        """
-        self._model = load_model(Path(context.artifacts["model"]))
-
-    def predict(
-        self,
-        context: Any,
-        model_input: pd.DataFrame,
-        params: dict[str, Any] | None = None,
-    ) -> np.ndarray:
-        """Score a batch of candidate interactions.
-
-        Args:
-            context: MLflow context (unused, the model is already loaded).
-            model_input: Frame with encoded indices and scaled features.
-            params: Unused inference parameters.
-
-        Returns:
-            Relevance probability of each row.
-        """
-        return self._model.predict_proba(InteractionData.from_frame(model_input))

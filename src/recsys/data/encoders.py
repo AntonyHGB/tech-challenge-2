@@ -1,116 +1,88 @@
-"""Encoding of raw identifiers into the contiguous indices models expect."""
+"""Codificação dos identificadores brutos em índices contíguos."""
 
 from __future__ import annotations
 
 from collections.abc import Sequence
 
 import numpy as np
-from sklearn.preprocessing import LabelEncoder
 
 
 class IdEncoder:
-    """Map raw user/item identifiers to contiguous zero-based indices.
+    """Mapeia identificadores de usuário/item para índices iniciados em zero.
 
-    Wraps :class:`sklearn.preprocessing.LabelEncoder` behind a small interface
-    that also answers which identifiers were seen during ``fit``, which is what
-    the splitter needs to drop cold-start rows.
+    O vocabulário é fixado na construção, o que torna o encoder imutável e
+    dispensa qualquer controle de estado "treinado/não treinado".
     """
 
-    def __init__(self) -> None:
-        """Initialize an unfitted encoder."""
-        self._encoder = LabelEncoder()
-        self._fitted = False
-
-    def fit(self, values: Sequence[int]) -> IdEncoder:
-        """Learn the identifier vocabulary.
+    def __init__(self, classes: Sequence[int]) -> None:
+        """Cria o encoder a partir de um vocabulário.
 
         Args:
-            values: Identifiers observed in the training data.
-
-        Returns:
-            The fitted encoder.
+            classes: Identificadores brutos, na ordem dos índices.
 
         Raises:
-            ValueError: If ``values`` is empty.
+            ValueError: Se ``classes`` estiver vazio.
         """
-        if len(values) == 0:
-            raise ValueError("Cannot fit IdEncoder on an empty sequence.")
-        self._encoder.fit(np.asarray(values))
-        self._fitted = True
-        return self
-
-    def transform(self, values: Sequence[int]) -> np.ndarray:
-        """Convert identifiers into indices.
-
-        Args:
-            values: Identifiers to encode; all must be known.
-
-        Returns:
-            Array of zero-based indices.
-
-        Raises:
-            RuntimeError: If called before :meth:`fit`.
-        """
-        self._require_fitted()
-        return self._encoder.transform(np.asarray(values)).astype(np.int64)
-
-    def known(self, values: Sequence[int]) -> np.ndarray:
-        """Flag which identifiers belong to the learned vocabulary.
-
-        Args:
-            values: Identifiers to test.
-
-        Returns:
-            Boolean mask aligned with ``values``.
-
-        Raises:
-            RuntimeError: If called before :meth:`fit`.
-        """
-        self._require_fitted()
-        return np.isin(np.asarray(values), self._encoder.classes_)
-
-    @property
-    def size(self) -> int:
-        """Number of distinct identifiers in the vocabulary.
-
-        Returns:
-            Vocabulary size.
-
-        Raises:
-            RuntimeError: If called before :meth:`fit`.
-        """
-        self._require_fitted()
-        return len(self._encoder.classes_)
-
-    def classes(self) -> list[int]:
-        """Return the vocabulary in index order.
-
-        Returns:
-            Raw identifiers ordered by their encoded index.
-
-        Raises:
-            RuntimeError: If called before :meth:`fit`.
-        """
-        self._require_fitted()
-        return [int(value) for value in self._encoder.classes_]
+        if len(classes) == 0:
+            raise ValueError("IdEncoder precisa de ao menos um identificador.")
+        self._classes = tuple(dict.fromkeys(int(value) for value in classes))
+        self._positions = {value: index for index, value in enumerate(self._classes)}
 
     @classmethod
-    def from_classes(cls, classes: Sequence[int]) -> IdEncoder:
-        """Rebuild an encoder from a persisted vocabulary.
+    def from_values(cls, values: Sequence[int]) -> IdEncoder:
+        """Constrói o encoder a partir dos identificadores observados.
 
         Args:
-            classes: Raw identifiers in index order.
+            values: Identificadores vistos no treino, com repetições.
 
         Returns:
-            A fitted encoder equivalent to the one that produced ``classes``.
+            Encoder cujo vocabulário são os valores distintos, ordenados.
         """
-        return cls().fit(list(classes))
+        return cls(sorted({int(value) for value in values}))
 
-    def _require_fitted(self) -> None:
-        """Guard methods that need a learned vocabulary.
+    def transform(self, values: Sequence[int]) -> np.ndarray:
+        """Converte identificadores em índices.
+
+        Args:
+            values: Identificadores a codificar; todos devem ser conhecidos.
+
+        Returns:
+            Array de índices iniciados em zero.
 
         Raises:
-            RuntimeError: If the encoder has not been fitted.
+            KeyError: Se algum identificador estiver fora do vocabulário.
         """
-        if not self._fitted:
-            raise RuntimeError("IdEncoder must be fitted before use.")
+        try:
+            return np.array(
+                [self._positions[int(value)] for value in values], dtype=np.int64
+            )
+        except KeyError as error:
+            raise KeyError(f"Identificador desconhecido: {error.args[0]}.") from error
+
+    def contains(self, value: int) -> bool:
+        """Informa se um identificador pertence ao vocabulário.
+
+        Args:
+            value: Identificador a testar.
+
+        Returns:
+            ``True`` quando o identificador é conhecido.
+        """
+        return int(value) in self._positions
+
+    @property
+    def classes(self) -> list[int]:
+        """Vocabulário na ordem dos índices.
+
+        Returns:
+            Identificadores brutos ordenados pelo índice codificado.
+        """
+        return list(self._classes)
+
+    def __len__(self) -> int:
+        """Retorna o tamanho do vocabulário.
+
+        Returns:
+            Quantidade de identificadores distintos.
+        """
+        return len(self._classes)

@@ -6,12 +6,12 @@ __pycache__/
 build/
 dist/
 
-# Virtual environments
+# Ambientes virtuais
 .venv/
 venv/
 env/
 
-# Tooling caches
+# Caches de ferramentas
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
@@ -27,22 +27,22 @@ logs/
 # Jupyter
 .ipynb_checkpoints/
 
-# Environment / secrets
+# Ambiente e segredos
 .env
 .env.*
 !.env.example
 
-# ML experiment tracking
+# Rastreamento de experimentos
 mlruns/
 mlartifacts/
 mlflow.db
 
-# DVC (cache and local remote stay out of git; .dvc files are versioned)
+# DVC (cache e remote local ficam fora do git; os arquivos .dvc são versionados)
 /.dvc/cache
 /.dvc/tmp
 /dvcstore/
 
-# Data & model artifacts (versioned via DVC, not git)
+# Dados e modelos (versionados via DVC, não pelo git)
 /data/*
 !/data/.gitkeep
 !/data/raw/
@@ -51,14 +51,14 @@ mlflow.db
 /models/*
 !/models/.gitkeep
 
-# Claude Code local settings (personal permissions)
+# Configurações locais do Claude Code (permissões pessoais)
 .claude/settings.local.json
 
 # Documentos locais (não versionados — fora do escopo de avaliação)
 CLAUDE.md
 Tech Challenge Fase 02.txt
 
-# IDE / OS
+# IDE e sistema operacional
 .idea/
 .vscode/
 .DS_Store

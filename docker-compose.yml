@@ -1,7 +1,7 @@
 name: ecommerce-recsys
 
 services:
-  # Tracking server + Model Registry, backed by SQLite inside a named volume.
+  # Servidor de tracking e Model Registry, com SQLite em volume nomeado.
   mlflow:
     build:
       context: .
@@ -30,7 +30,7 @@ services:
       retries: 12
       start_period: 20s
 
-  # Training service: reproduces the DVC pipeline against the MLflow server.
+  # Serviço de treino: reproduz o pipeline DVC contra o servidor MLflow.
   trainer:
     build:
       context: .
@@ -43,7 +43,7 @@ services:
       MLFLOW_TRACKING_URI: http://mlflow:5000
       MLFLOW_EXPERIMENT_NAME: ecommerce-recsys
       MLFLOW_REGISTERED_MODEL_NAME: ecommerce-recsys-recommender
-      # Empty: the artifacts land wherever the MLflow server serves them from.
+      # Vazio: os artefatos ficam onde o servidor MLflow os serve.
       MLFLOW_ARTIFACT_LOCATION: ""
       PARAMS_FILE: configs/params.yaml
     volumes:
@@ -54,7 +54,7 @@ services:
       - ./dvc.yaml:/app/dvc.yaml
       - ./dvc.lock:/app/dvc.lock
       - ./.dvc:/app/.dvc
-      # DVC resolve o estado do pipeline pelo repositório git do projeto.
+      # O DVC resolve o estado do pipeline pelo repositório git do projeto.
       - ./.git:/app/.git
     command: ["dvc", "repro", "--force"]
 

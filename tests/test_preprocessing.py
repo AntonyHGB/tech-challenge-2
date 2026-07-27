@@ -1,43 +1,43 @@
-"""Tests for preprocessing strategies, the pipeline context and the registry."""
+"""Testes das estratégias de pré-processamento e do pipeline."""
 
 from __future__ import annotations
 
 import pytest
 
-from recsys.preprocessing.pipeline import PreprocessingPipeline
-from recsys.preprocessing.registry import (
-    available_strategies,
+from recsys.preprocessing import (
+    MinMaxScaler,
+    PreprocessingPipeline,
+    StandardScaler,
     build_pipeline,
     build_strategy,
 )
-from recsys.preprocessing.strategies import MinMaxScaler, StandardScaler
+from recsys.preprocessing.strategies import available_strategies
 
 
-def test_min_max_scaler_scales_to_unit_range():
-    result = MinMaxScaler().fit_transform([0.0, 5.0, 10.0])
-    assert result == [0.0, 0.5, 1.0]
+def test_min_max_escala_para_intervalo_unitario():
+    assert MinMaxScaler().fit_transform([0.0, 5.0, 10.0]) == [0.0, 0.5, 1.0]
 
 
-def test_min_max_scaler_handles_constant_column():
+def test_min_max_lida_com_coluna_constante():
     assert MinMaxScaler().fit_transform([3.0, 3.0]) == [0.0, 0.0]
 
 
-def test_standard_scaler_produces_zero_mean():
+def test_standard_scaler_produz_media_zero():
     result = StandardScaler().fit_transform([1.0, 2.0, 3.0])
     assert sum(result) == pytest.approx(0.0)
 
 
-def test_transform_before_fit_raises():
+def test_transform_antes_do_fit_levanta_erro():
     with pytest.raises(RuntimeError):
         MinMaxScaler().transform([1.0])
 
 
-def test_fit_on_empty_sequence_raises():
-    with pytest.raises(ValueError, match="empty"):
+def test_fit_em_sequencia_vazia_levanta_erro():
+    with pytest.raises(ValueError, match="vazia"):
         MinMaxScaler().fit([])
 
 
-def test_pipeline_applies_one_strategy_per_column():
+def test_pipeline_aplica_uma_estrategia_por_coluna():
     pipeline = PreprocessingPipeline(
         {"price": MinMaxScaler(), "rating": StandardScaler()}
     )
@@ -46,22 +46,21 @@ def test_pipeline_applies_one_strategy_per_column():
     assert out["rating"][0] == pytest.approx(-1.0)
 
 
-def test_pipeline_reuses_the_training_fit_on_new_data():
+def test_pipeline_reaproveita_o_ajuste_do_treino():
     pipeline = PreprocessingPipeline({"price": MinMaxScaler()})
     pipeline.fit({"price": [0.0, 10.0]})
     assert pipeline.transform({"price": [5.0]})["price"] == [0.5]
 
 
-def test_registry_lists_and_builds_strategies():
+def test_registro_lista_e_constroi_estrategias():
     assert available_strategies() == ["minmax", "standard"]
     assert isinstance(build_strategy("standard"), StandardScaler)
 
 
-def test_registry_rejects_unknown_strategies():
-    with pytest.raises(KeyError, match="Unknown strategy"):
-        build_strategy("does-not-exist")
+def test_registro_rejeita_estrategia_desconhecida():
+    with pytest.raises(KeyError, match="desconhecida"):
+        build_strategy("nao-existe")
 
 
-def test_built_pipeline_covers_every_requested_column():
-    pipeline = build_pipeline("minmax", ["a", "b"])
-    assert pipeline.columns == ["a", "b"]
+def test_pipeline_construido_cobre_todas_as_colunas():
+    assert build_pipeline("minmax", ["a", "b"]).columns == ["a", "b"]
