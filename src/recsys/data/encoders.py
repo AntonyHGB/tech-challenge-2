@@ -30,13 +30,13 @@ class IdEncoder:
 
     @classmethod
     def from_values(cls, values: Sequence[int]) -> IdEncoder:
-        """Constrói o encoder a partir dos identificadores observados.
+        """Constrói o encoder com os valores distintos observados, ordenados.
 
         Args:
             values: Identificadores vistos no treino, com repetições.
 
         Returns:
-            Encoder cujo vocabulário são os valores distintos, ordenados.
+            O encoder correspondente.
         """
         return cls(sorted({int(value) for value in values}))
 
@@ -72,17 +72,9 @@ class IdEncoder:
 
     @property
     def classes(self) -> list[int]:
-        """Vocabulário na ordem dos índices.
-
-        Returns:
-            Identificadores brutos ordenados pelo índice codificado.
-        """
+        """Vocabulário na ordem dos índices."""
         return list(self._classes)
 
     def __len__(self) -> int:
-        """Retorna o tamanho do vocabulário.
-
-        Returns:
-            Quantidade de identificadores distintos.
-        """
+        """Tamanho do vocabulário."""
         return len(self._classes)

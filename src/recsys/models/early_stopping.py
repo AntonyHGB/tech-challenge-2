@@ -55,28 +55,20 @@ class EarlyStopping:
         return self._patience > 0 and self._epochs_without_improvement >= self._patience
 
     def restore(self, network: nn.Module) -> None:
-        """Recarrega em ``network`` os melhores pesos observados.
+        """Recarrega os melhores pesos observados, se houver algum.
 
         Args:
-            network: Rede a restaurar; fica intacta se nenhuma época melhorou.
+            network: Rede a restaurar.
         """
         if self._best_state:
             network.load_state_dict(self._best_state)
 
     @property
     def best_loss(self) -> float:
-        """Menor perda de validação observada.
-
-        Returns:
-            A melhor perda, ou infinito se nenhuma época rodou.
-        """
+        """Menor perda de validação observada."""
         return self._best_loss
 
     @property
     def best_epoch(self) -> int:
-        """Época que produziu a menor perda de validação.
-
-        Returns:
-            Número da época (base um), ou ``0`` se nenhuma melhorou.
-        """
+        """Época que produziu a menor perda de validação."""
         return self._best_epoch

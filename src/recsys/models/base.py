@@ -47,17 +47,9 @@ class RecommenderModel(ABC):
         """
 
     def hyperparameters(self) -> dict[str, Any]:
-        """Descreve a configuração que o MLflow deve registrar.
-
-        Returns:
-            Mapa de hiperparâmetro para valor; vazio por padrão.
-        """
+        """Configuração que o MLflow registra; vazia por padrão."""
         return {}
 
     def training_history(self) -> dict[str, list[float]]:
-        """Curvas de aprendizado por época, quando o modelo as produz.
-
-        Returns:
-            Mapa de nome da curva para os valores por época; vazio por padrão.
-        """
+        """Curvas de aprendizado por época; vazias por padrão."""
         return {}

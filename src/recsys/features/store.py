@@ -69,27 +69,9 @@ class InteractionStatistics(BaseModel):
             item_mean_rating=_map(frame, "item_id", self.item_mean_rating, mean),
         )
 
-    def feature_row(self, user_id: int, item_id: int) -> dict[str, float]:
-        """Monta as features de um único par candidato.
-
-        Args:
-            user_id: Identificador bruto do usuário.
-            item_id: Identificador bruto do item.
-
-        Returns:
-            Mapa de nome da feature para o valor, com fallback quando inédito.
-        """
-        mean = self.global_mean_rating
-        return {
-            "user_activity": self.user_activity.get(user_id, 0.0),
-            "item_popularity": self.item_popularity.get(item_id, 0.0),
-            "user_mean_rating": self.user_mean_rating.get(user_id, mean),
-            "item_mean_rating": self.item_mean_rating.get(item_id, mean),
-        }
-
 
 class FeatureStore(BaseModel):
-    """Artefatos de features compartilhados por treino, avaliação e serving.
+    """Artefatos de features compartilhados por treino e avaliação.
 
     Attributes:
         statistics: Agregados aprendidos no split de treino.
@@ -109,36 +91,20 @@ class FeatureStore(BaseModel):
 
     @property
     def n_users(self) -> int:
-        """Tamanho do vocabulário de usuários.
-
-        Returns:
-            Quantidade de usuários distintos vistos no treino.
-        """
+        """Tamanho do vocabulário de usuários."""
         return len(self.user_classes)
 
     @property
     def n_items(self) -> int:
-        """Tamanho do vocabulário de itens.
-
-        Returns:
-            Quantidade de itens distintos vistos no treino.
-        """
+        """Tamanho do vocabulário de itens."""
         return len(self.item_classes)
 
     def user_encoder(self) -> IdEncoder:
-        """Recria o encoder de usuários.
-
-        Returns:
-            Encoder que mapeia identificadores de usuário para índices.
-        """
+        """Recria o encoder de usuários."""
         return IdEncoder(self.user_classes)
 
     def item_encoder(self) -> IdEncoder:
-        """Recria o encoder de itens.
-
-        Returns:
-            Encoder que mapeia identificadores de item para índices.
-        """
+        """Recria o encoder de itens."""
         return IdEncoder(self.item_classes)
 
     def save(self, path: Path) -> Path:
@@ -168,29 +134,13 @@ class FeatureStore(BaseModel):
 
 
 def _count(frame: pd.DataFrame, column: str) -> dict[int, float]:
-    """Conta as interações por identificador.
-
-    Args:
-        frame: Interações de treino.
-        column: Coluna de identificador usada no agrupamento.
-
-    Returns:
-        Mapa de identificador para a contagem de interações.
-    """
+    """Conta as interações por identificador."""
     counts = frame.groupby(column).size()
     return {int(key): float(value) for key, value in counts.items()}
 
 
 def _mean_rating(frame: pd.DataFrame, column: str) -> dict[int, float]:
-    """Calcula a nota média por identificador.
-
-    Args:
-        frame: Interações de treino.
-        column: Coluna de identificador usada no agrupamento.
-
-    Returns:
-        Mapa de identificador para a nota média.
-    """
+    """Calcula a nota média por identificador."""
     means = frame.groupby(column)["rating"].mean()
     return {int(key): float(value) for key, value in means.items()}
 
@@ -198,15 +148,5 @@ def _mean_rating(frame: pd.DataFrame, column: str) -> dict[int, float]:
 def _map(
     frame: pd.DataFrame, column: str, values: dict[int, float], default: float
 ) -> pd.Series:
-    """Traduz uma coluna do frame pelo agregado, com valor padrão.
-
-    Args:
-        frame: Frame de origem.
-        column: Coluna com os identificadores.
-        values: Agregado indexado por identificador.
-        default: Valor usado para identificadores ausentes.
-
-    Returns:
-        Série de features alinhada com ``frame``.
-    """
+    """Traduz uma coluna pelo agregado, usando ``default`` no que faltar."""
     return frame[column].map(values).fillna(default).astype(float)

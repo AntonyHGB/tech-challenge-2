@@ -34,4 +34,3 @@ evaluation:
   top_k: 10
   decision_threshold: 0.5
   primary_metric: roc_auc
-  sample_users: 3

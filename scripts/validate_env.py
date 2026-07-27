@@ -47,11 +47,7 @@ def report(ok: bool, message: str) -> None:
 
 
 def check_python_version() -> bool:
-    """Confere se o interpretador atende à versão mínima suportada.
-
-    Returns:
-        ``True`` se a versão do Python for suportada.
-    """
+    """Confere se o interpretador atende à versão mínima suportada."""
     current = sys.version_info[:2]
     ok = current >= MIN_PYTHON
     want = ".".join(map(str, MIN_PYTHON))
@@ -61,11 +57,7 @@ def check_python_version() -> bool:
 
 
 def check_packages() -> bool:
-    """Confere se cada pacote obrigatório importa e mostra a versão.
-
-    Returns:
-        ``True`` se todos os pacotes importarem.
-    """
+    """Confere se cada pacote obrigatório importa e mostra a versão."""
     all_ok = True
     for module_name, dist_name in REQUIRED_PACKAGES.items():
         ok, detail = _probe_package(module_name, dist_name)
@@ -75,11 +67,7 @@ def check_packages() -> bool:
 
 
 def check_settings() -> bool:
-    """Carrega as configurações tipadas para confirmar a ligação com o ``.env``.
-
-    Returns:
-        ``True`` se as configurações carregarem sem erro.
-    """
+    """Carrega as configurações tipadas para conferir a ligação com o ``.env``."""
     try:
         from recsys.config import get_settings
 
@@ -110,15 +98,7 @@ def main() -> int:
 
 
 def _probe_package(module_name: str, dist_name: str) -> tuple[bool, str]:
-    """Importa um pacote e busca a versão instalada da distribuição.
-
-    Args:
-        module_name: Nome do módulo importável (por exemplo, ``"sklearn"``).
-        dist_name: Nome da distribuição no PyPI (``"scikit-learn"``).
-
-    Returns:
-        Par ``(sucesso, mensagem)`` descrevendo o resultado.
-    """
+    """Importa um pacote e devolve ``(sucesso, mensagem)`` com a versão."""
     try:
         importlib.import_module(module_name)
     except ImportError:

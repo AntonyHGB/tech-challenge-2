@@ -9,7 +9,6 @@ import json
 from dataclasses import asdict
 from typing import Any
 
-import joblib
 import pandas as pd
 
 from recsys.data.interactions import InteractionData
@@ -19,7 +18,6 @@ from recsys.models import BASELINE_MODELS, NEURAL_MODEL
 from recsys.models.persistence import load_model
 from recsys.pipelines.context import ArtifactLayout, StageContext
 from recsys.pipelines.train import format_metrics
-from recsys.ranker import TopKRanker
 from recsys.tracking.promotion import register_and_promote
 from recsys.tracking.tracker import ExperimentTracker
 
@@ -41,7 +39,7 @@ def main() -> int:
         results = _evaluate_all(context, tracker, test_data)
         best = _select_best(results, context.params.evaluation.primary_metric)
         promoted = _promote(context, tracker, best)
-        _write_outputs(context, store, test_frame, results, best, promoted)
+        _write_outputs(context, results, best, promoted)
         _log_reports(tracker, context.layout)
     return 0
 
@@ -49,16 +47,7 @@ def main() -> int:
 def _evaluate_all(
     context: StageContext, tracker: ExperimentTracker, test_data: InteractionData
 ) -> dict[str, dict[str, float]]:
-    """Pontua todos os modelos treinados no split de teste.
-
-    Args:
-        context: Contexto do stage.
-        tracker: Tracker ativo do MLflow.
-        test_data: Interações de teste.
-
-    Returns:
-        Mapa de chave do modelo para as métricas de teste.
-    """
+    """Pontua todos os modelos treinados no split de teste."""
     results: dict[str, dict[str, float]] = {}
     for name in EVALUATED_MODELS:
         model = load_model(context.layout.model(name))
@@ -77,13 +66,6 @@ def _evaluate_all(
 def _select_best(results: dict[str, dict[str, float]], primary_metric: str) -> str:
     """Escolhe o modelo com a maior métrica primária.
 
-    Args:
-        results: Métricas de teste de cada modelo.
-        primary_metric: Métrica usada para ordenar os modelos.
-
-    Returns:
-        A chave do modelo vencedor.
-
     Raises:
         KeyError: Se a métrica primária não tiver sido calculada.
     """
@@ -96,16 +78,7 @@ def _select_best(results: dict[str, dict[str, float]], primary_metric: str) -> s
 def _promote(
     context: StageContext, tracker: ExperimentTracker, best: str
 ) -> dict[str, Any]:
-    """Registra o modelo vencedor e o promove a Production.
-
-    Args:
-        context: Contexto do stage.
-        tracker: Tracker ativo do MLflow.
-        best: Chave do modelo vencedor.
-
-    Returns:
-        Mapa que descreve a versão promovida.
-    """
+    """Registra o modelo vencedor e o promove a Production."""
     report = json.loads(context.layout.train_report(best).read_text(encoding="utf-8"))
     promoted = register_and_promote(
         client=tracker.client,
@@ -125,22 +98,11 @@ def _promote(
 
 def _write_outputs(
     context: StageContext,
-    store: FeatureStore,
-    test_frame: pd.DataFrame,
     results: dict[str, dict[str, float]],
     best: str,
     promoted: dict[str, Any],
 ) -> None:
-    """Grava métricas, tabela de comparação e recomendações de exemplo.
-
-    Args:
-        context: Contexto do stage.
-        store: Artefatos de features.
-        test_frame: Frame de teste, usado para escolher usuários de exemplo.
-        results: Métricas de teste de cada modelo.
-        best: Chave do modelo vencedor.
-        promoted: Descrição da versão promovida.
-    """
+    """Grava as métricas, a tabela de comparação e o registro da promoção."""
     layout = context.layout
     layout.reports_dir.mkdir(parents=True, exist_ok=True)
     payload = {
@@ -151,36 +113,16 @@ def _write_outputs(
     layout.metrics.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     layout.comparison.write_text(_comparison_table(results, best), encoding="utf-8")
     layout.registry.write_text(json.dumps(promoted, indent=2), encoding="utf-8")
-    samples = _sample_recommendations(context, store, test_frame, best)
-    layout.recommendations.write_text(json.dumps(samples, indent=2), encoding="utf-8")
 
 
 def _log_reports(tracker: ExperimentTracker, layout: ArtifactLayout) -> None:
-    """Anexa os relatórios gerados à execução de avaliação.
-
-    Args:
-        tracker: Tracker ativo do MLflow.
-        layout: Caminhos de artefatos resolvidos.
-    """
-    for path in (
-        layout.metrics,
-        layout.comparison,
-        layout.registry,
-        layout.recommendations,
-    ):
+    """Anexa os relatórios gerados à execução de avaliação."""
+    for path in (layout.metrics, layout.comparison, layout.registry):
         tracker.log_file(path)
 
 
 def _comparison_table(results: dict[str, dict[str, float]], best: str) -> str:
-    """Renderiza a comparação dos modelos como tabela markdown.
-
-    Args:
-        results: Métricas de teste de cada modelo.
-        best: Chave do modelo vencedor.
-
-    Returns:
-        Documento markdown comparando todos os modelos.
-    """
+    """Renderiza a comparação dos modelos como tabela markdown."""
     metrics = sorted({name for values in results.values() for name in values})
     header = "| modelo | " + " | ".join(metrics) + " |"
     divider = "| --- " * (len(metrics) + 1) + "|"
@@ -192,45 +134,6 @@ def _comparison_table(results: dict[str, dict[str, float]], best: str) -> str:
     ]
     body = "\n".join([header, divider, *rows])
     return f"# Comparação de modelos (split de teste)\n\n{body}\n"
-
-
-def _sample_recommendations(
-    context: StageContext,
-    store: FeatureStore,
-    test_frame: pd.DataFrame,
-    best: str,
-) -> list[dict[str, Any]]:
-    """Gera recomendações top-k de alguns usuários com o modelo vencedor.
-
-    Args:
-        context: Contexto do stage.
-        store: Artefatos de features.
-        test_frame: Frame de teste usado para escolher os usuários.
-        best: Chave do modelo vencedor.
-
-    Returns:
-        Lista com as recomendações de cada usuário de exemplo.
-    """
-    sample_size = context.params.evaluation.sample_users
-    if sample_size == 0 or test_frame.empty:
-        return []
-    ranker = TopKRanker(
-        model=load_model(context.layout.model(best)),
-        store=store,
-        pipeline=joblib.load(context.layout.preprocessor),
-    )
-    top_k = context.params.evaluation.top_k
-    users = test_frame["user_id"].drop_duplicates().head(sample_size)
-    return [
-        {
-            "model": best,
-            "user_id": int(user_id),
-            "recommendations": [
-                asdict(item) for item in ranker.recommend(int(user_id), top_k=top_k)
-            ],
-        }
-        for user_id in users
-    ]
 
 
 if __name__ == "__main__":

@@ -5,6 +5,10 @@ Execute com ``poetry run python -m recsys.pipelines.preprocess``.
 
 from __future__ import annotations
 
+from pathlib import Path
+
+import pandas as pd
+
 from recsys.data.dataset import clean_interactions, load_interactions
 from recsys.pipelines.context import StageContext
 
@@ -34,12 +38,17 @@ def main() -> int:
     target = context.layout.interactions
     target.parent.mkdir(parents=True, exist_ok=True)
     cleaned.to_parquet(target, index=False)
-    print(f"[preprocess] interações brutas:  {len(raw)}")
+    _report(len(raw), cleaned, target)
+    return 0
+
+
+def _report(raw_rows: int, cleaned: pd.DataFrame, target: Path) -> None:
+    """Imprime o resumo da limpeza no log do stage."""
+    print(f"[preprocess] interações brutas:  {raw_rows}")
     print(f"[preprocess] interações limpas:  {len(cleaned)}")
     print(f"[preprocess] usuários:           {cleaned['user_id'].nunique()}")
     print(f"[preprocess] itens:              {cleaned['item_id'].nunique()}")
     print(f"[preprocess] gravado em:         {target}")
-    return 0
 
 
 if __name__ == "__main__":

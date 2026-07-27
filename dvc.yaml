@@ -30,7 +30,6 @@ stages:
       - data/processed/validation.parquet
       - data/processed/test.parquet
       - data/processed/feature_store.json
-      - data/processed/preprocessor.joblib
 
   train:
     foreach:
@@ -64,7 +63,6 @@ stages:
     cmd: python -m recsys.pipelines.evaluate
     deps:
       - data/processed/test.parquet
-      - data/processed/preprocessor.joblib
       - models/logistic/model.joblib
       - models/mlp/model.joblib
       - models/popularity/model.joblib
@@ -72,7 +70,6 @@ stages:
       - reports/train/mlp.json
       - reports/train/popularity.json
       - src/recsys/metrics.py
-      - src/recsys/ranker.py
       - src/recsys/pipelines/evaluate.py
     params:
       - configs/params.yaml:
@@ -84,6 +81,4 @@ stages:
       - reports/comparison.md:
           cache: false
       - reports/model_registry.json:
-          cache: false
-      - reports/sample_recommendations.json:
           cache: false

@@ -63,17 +63,7 @@ def register_and_promote(
 
 
 def _transition(client: MlflowClient, name: str, version: str, stage: str) -> str:
-    """Move a versão para ``stage``, tolerando backends sem estágios.
-
-    Args:
-        client: Cliente do MLflow.
-        name: Nome do modelo registrado.
-        version: Versão a mover.
-        stage: Estágio de destino.
-
-    Returns:
-        O estágio alcançado, ou ``"aliased"`` se o backend não tiver estágios.
-    """
+    """Move a versão para ``stage``; devolve ``"aliased"`` se o backend não os tiver."""
     try:
         client.transition_model_version_stage(
             name=name,
@@ -87,14 +77,7 @@ def _transition(client: MlflowClient, name: str, version: str, stage: str) -> st
 
 
 def _set_alias(client: MlflowClient, name: str, version: str, alias: str) -> None:
-    """Aponta um alias para a versão, se o backend suportar aliases.
-
-    Args:
-        client: Cliente do MLflow.
-        name: Nome do modelo registrado.
-        version: Versão para a qual o alias deve apontar.
-        alias: Nome do alias.
-    """
+    """Aponta um alias para a versão, se o backend suportar aliases."""
     try:
         client.set_registered_model_alias(name=name, alias=alias, version=version)
     except (MlflowException, AttributeError):

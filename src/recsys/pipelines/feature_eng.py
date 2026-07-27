@@ -5,7 +5,6 @@ Execute com ``poetry run python -m recsys.pipelines.feature_eng``.
 
 from __future__ import annotations
 
-import joblib
 import pandas as pd
 
 from recsys.data.encoders import IdEncoder
@@ -55,7 +54,7 @@ def main() -> int:
     )
     pipeline = build_pipeline(context.params.features.scaler, FEATURE_COLUMNS)
     _write_splits(context, splits, statistics, encoders, pipeline)
-    _write_artifacts(context, statistics, encoders, pipeline)
+    _write_store(context, statistics, encoders)
     return 0
 
 
@@ -66,15 +65,7 @@ def _write_splits(
     encoders: tuple[IdEncoder, IdEncoder],
     pipeline: PreprocessingPipeline,
 ) -> None:
-    """Prepara e grava os três splits, ajustando o scaler só no treino.
-
-    Args:
-        context: Contexto do stage.
-        splits: Splits cronológicos.
-        statistics: Agregados aprendidos no split de treino.
-        encoders: Encoders de usuário e de item.
-        pipeline: Pipeline de pré-processamento a ajustar no treino.
-    """
+    """Prepara e grava os três splits, ajustando o scaler só no treino."""
     threshold = context.params.features.positive_threshold
     for name, frame in splits.as_mapping().items():
         engineered = _engineer(frame, statistics, encoders, threshold)
@@ -97,17 +88,7 @@ def _engineer(
     encoders: tuple[IdEncoder, IdEncoder],
     threshold: float,
 ) -> pd.DataFrame:
-    """Anexa features, rótulo e índices codificados a um split.
-
-    Args:
-        frame: Frame bruto do split.
-        statistics: Agregados aprendidos no split de treino.
-        encoders: Encoders de usuário e de item.
-        threshold: Nota a partir da qual a interação é relevante.
-
-    Returns:
-        O frame preparado.
-    """
+    """Anexa features, rótulo e índices codificados a um split."""
     user_encoder, item_encoder = encoders
     engineered = add_binary_label(statistics.attach(frame), threshold)
     return engineered.assign(
@@ -116,20 +97,12 @@ def _engineer(
     )
 
 
-def _write_artifacts(
+def _write_store(
     context: StageContext,
     statistics: InteractionStatistics,
     encoders: tuple[IdEncoder, IdEncoder],
-    pipeline: PreprocessingPipeline,
 ) -> None:
-    """Grava o feature store e o pipeline de pré-processamento ajustado.
-
-    Args:
-        context: Contexto do stage.
-        statistics: Agregados aprendidos no split de treino.
-        encoders: Encoders de usuário e de item.
-        pipeline: Pipeline já ajustado no split de treino.
-    """
+    """Grava o feature store consumido pelo treino e pela avaliação."""
     user_encoder, item_encoder = encoders
     store = FeatureStore(
         statistics=statistics,
@@ -139,7 +112,6 @@ def _write_artifacts(
         positive_threshold=context.params.features.positive_threshold,
     )
     store.save(context.layout.feature_store)
-    joblib.dump(pipeline, context.layout.preprocessor)
     print(
         f"[feature_eng] vocabulário usuários={store.n_users} "
         f"itens={store.n_items} -> {context.layout.feature_store}"

@@ -18,8 +18,7 @@ from recsys.models import RecommenderModel, build_default_factory
 from recsys.models.persistence import save_model
 from recsys.pipelines.context import StageContext
 from recsys.pipelines.params import model_kwargs
-from recsys.tracking.pyfunc import build_input_example
-from recsys.tracking.tracker import ExperimentTracker
+from recsys.tracking.tracker import ExperimentTracker, build_input_example
 
 
 def main() -> int:
@@ -44,12 +43,21 @@ def main() -> int:
     return 0
 
 
-def _parse_args() -> argparse.Namespace:
-    """Lê os argumentos de linha de comando do stage.
+def format_metrics(metrics: dict[str, float]) -> str:
+    """Resume as métricas principais para o log do stage.
+
+    Args:
+        metrics: Mapa de métricas.
 
     Returns:
-        Namespace com a chave do modelo pedido.
+        Um resumo compacto e legível.
     """
+    keys = ("roc_auc", "f1", "precision_at_k", "ndcg_at_k")
+    return " ".join(f"{key}={metrics[key]:.4f}" for key in keys if key in metrics)
+
+
+def _parse_args() -> argparse.Namespace:
+    """Lê os argumentos de linha de comando do stage."""
     parser = argparse.ArgumentParser(description="Treina um recomendador.")
     parser.add_argument(
         "--model",
@@ -62,16 +70,7 @@ def _parse_args() -> argparse.Namespace:
 def _load_split(
     context: StageContext, name: str, store: FeatureStore
 ) -> InteractionData:
-    """Lê um split preparado e o converte nos arrays dos modelos.
-
-    Args:
-        context: Contexto do stage.
-        name: Nome do split.
-        store: Artefatos de features, que definem as colunas usadas.
-
-    Returns:
-        O split como :class:`InteractionData`.
-    """
+    """Lê um split preparado e o converte nos arrays dos modelos."""
     frame = pd.read_parquet(context.layout.split(name))
     return InteractionData.from_frame(frame, store.feature_columns)
 
@@ -83,18 +82,7 @@ def _run_training(
     validation_data: InteractionData,
     store: FeatureStore,
 ) -> dict[str, Any]:
-    """Treina o modelo dentro de uma execução rastreada do MLflow.
-
-    Args:
-        context: Contexto do stage.
-        model: Instância criada pela fábrica.
-        train_data: Interações de treino.
-        validation_data: Interações de validação, usadas no early stopping.
-        store: Artefatos de features que descrevem a carga de inferência.
-
-    Returns:
-        O relatório de treino consumido pelo stage de avaliação.
-    """
+    """Treina o modelo dentro de uma execução rastreada do MLflow."""
     tracker = context.tracker()
     tags = {"stage": "train", "model": model.name}
     with tracker.run(run_name=f"train-{model.name}", tags=tags) as run_id:
@@ -105,11 +93,12 @@ def _run_training(
         model.fit(train_data, validation_data)
         tracker.log_curves(model.training_history())
         metrics = _log_validation(tracker, context, model, validation_data)
-        model_uri = _log_artifact(tracker, context, model, train_data, store)
+        model_path = save_model(model, context.layout.model(model.name))
+        example = build_input_example(train_data, store.feature_columns)
         return {
             "model": model.name,
             "run_id": run_id,
-            "model_uri": model_uri,
+            "model_uri": tracker.log_recommender(model_path, example),
             "hyperparameters": model.hyperparameters(),
             "validation_metrics": metrics,
         }
@@ -121,17 +110,7 @@ def _log_validation(
     model: RecommenderModel,
     validation_data: InteractionData,
 ) -> dict[str, float]:
-    """Avalia o modelo na validação e registra as métricas.
-
-    Args:
-        tracker: Tracker ativo do MLflow.
-        context: Contexto do stage.
-        model: Modelo já treinado.
-        validation_data: Interações de validação.
-
-    Returns:
-        As métricas de validação.
-    """
+    """Avalia o modelo na validação e registra as métricas."""
     metrics = evaluate_model(
         model,
         validation_data,
@@ -141,43 +120,6 @@ def _log_validation(
     tracker.log_metrics(metrics, prefix="validation_")
     print(f"[train] {model.name}: validação {format_metrics(metrics)}")
     return metrics
-
-
-def _log_artifact(
-    tracker: ExperimentTracker,
-    context: StageContext,
-    model: RecommenderModel,
-    train_data: InteractionData,
-    store: FeatureStore,
-) -> str:
-    """Grava o modelo e o registra como modelo implantável do MLflow.
-
-    Args:
-        tracker: Tracker ativo do MLflow.
-        context: Contexto do stage.
-        model: Modelo já treinado.
-        train_data: Interações de treino, amostradas para o exemplo de entrada.
-        store: Artefatos de features que descrevem a carga de inferência.
-
-    Returns:
-        URI do modelo registrado.
-    """
-    model_path = save_model(model, context.layout.model(model.name))
-    example = build_input_example(train_data, store.feature_columns)
-    return tracker.log_recommender(model_path, example)
-
-
-def format_metrics(metrics: dict[str, float]) -> str:
-    """Resume as métricas principais para o log do stage.
-
-    Args:
-        metrics: Mapa de métricas.
-
-    Returns:
-        Um resumo compacto e legível.
-    """
-    keys = ("roc_auc", "f1", "precision_at_k", "ndcg_at_k")
-    return " ".join(f"{key}={metrics[key]:.4f}" for key in keys if key in metrics)
 
 
 if __name__ == "__main__":

@@ -26,8 +26,10 @@ def test_attach_adiciona_todas_as_colunas_de_feature(interaction_frame):
 
 def test_entidades_desconhecidas_usam_valores_neutros(interaction_frame):
     statistics = InteractionStatistics.from_frame(interaction_frame)
-    row = statistics.feature_row(user_id=999, item_id=999)
+    unseen = pd.DataFrame({"user_id": [999], "item_id": [999], "rating": [5.0]})
+    row = statistics.attach(unseen).iloc[0]
     assert row["user_activity"] == 0.0
+    assert row["item_popularity"] == 0.0
     assert row["item_mean_rating"] == statistics.global_mean_rating
 
 
