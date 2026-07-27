@@ -1,4 +1,4 @@
-"""Tests for the typed hyper-parameter file and its use by the pipeline."""
+"""Testes do arquivo tipado de hiperparâmetros e do seu uso no pipeline."""
 
 from __future__ import annotations
 
@@ -7,62 +7,66 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from recsys.features.statistics import InteractionStatistics
-from recsys.features.store import FeatureStore
-from recsys.pipelines.model_config import model_kwargs
-from recsys.pipelines.params import Params, load_params
+from recsys.features.store import FeatureStore, InteractionStatistics
+from recsys.pipelines.params import Params, load_params, model_kwargs
 
 PARAMS_FILE = Path("configs/params.yaml")
 
 
 def _store() -> FeatureStore:
-    """Build a minimal feature store for the parameter tests.
+    """Cria um feature store mínimo para os testes de parâmetros.
 
     Returns:
-        A store with two users and three items.
+        Um store com dois usuários e três itens.
     """
-    statistics = InteractionStatistics({}, {}, {}, {}, 3.5)
+    statistics = InteractionStatistics(
+        user_activity={},
+        item_popularity={},
+        user_mean_rating={},
+        item_mean_rating={},
+        global_mean_rating=3.5,
+    )
     return FeatureStore(
         statistics=statistics, user_classes=[1, 2], item_classes=[10, 11, 12]
     )
 
 
-def test_project_params_file_is_valid():
+def test_arquivo_de_parametros_do_projeto_e_valido():
     params = load_params(PARAMS_FILE)
     assert params.seed == 42
     assert params.features.scaler in {"standard", "minmax"}
     assert params.evaluation.top_k >= 1
 
 
-def test_missing_params_file_raises():
+def test_arquivo_de_parametros_ausente_levanta_erro():
     with pytest.raises(FileNotFoundError):
-        load_params(Path("configs/does-not-exist.yaml"))
+        load_params(Path("configs/nao-existe.yaml"))
 
 
-def test_unknown_parameters_are_rejected():
+def test_parametros_desconhecidos_sao_rejeitados():
     with pytest.raises(ValidationError):
-        Params.model_validate({"unexpected": 1})
+        Params.model_validate({"inesperado": 1})
 
 
-def test_out_of_range_fractions_are_rejected():
+def test_fracoes_fora_do_intervalo_sao_rejeitadas():
     with pytest.raises(ValidationError):
         Params.model_validate({"data": {"test_fraction": 1.5}})
 
 
-def test_flat_view_prefixes_each_section():
+def test_visao_achatada_prefixa_cada_secao():
     flat = Params().flat()
     assert flat["seed"] == 42
     assert flat["training.epochs"] == 30
     assert flat["evaluation.primary_metric"] == "roc_auc"
 
 
-def test_model_kwargs_wire_the_vocabulary_into_the_network():
+def test_kwargs_levam_o_vocabulario_para_a_rede():
     kwargs = model_kwargs("mlp", Params(), _store())
     assert kwargs["n_users"] == 2
     assert kwargs["n_items"] == 3
     assert kwargs["seed"] == 42
 
 
-def test_model_kwargs_reject_unknown_models():
-    with pytest.raises(KeyError, match="No parameters for model"):
-        model_kwargs("unknown", Params(), _store())
+def test_kwargs_rejeitam_modelos_desconhecidos():
+    with pytest.raises(KeyError, match="Sem parâmetros"):
+        model_kwargs("desconhecido", Params(), _store())

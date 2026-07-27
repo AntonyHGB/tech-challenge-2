@@ -1,4 +1,4 @@
-"""Scikit-Learn baselines the neural recommender is compared against."""
+"""Baselines do Scikit-Learn usados como referência para a rede neural."""
 
 from __future__ import annotations
 
@@ -12,21 +12,21 @@ from recsys.models.base import RecommenderModel
 
 
 class PopularityRecommender(RecommenderModel):
-    """Non-personalised baseline that scores items by their historical appeal.
+    """Baseline não personalizado, que pontua o item pelo apelo histórico.
 
-    Each item receives the smoothed share of positive interactions it collected
-    during training, so popular items rank first for everyone. It is the sanity
-    floor any personalised model must beat.
+    Cada item recebe a proporção suavizada de interações positivas que obteve
+    no treino, então os itens populares aparecem primeiro para todo mundo. É o
+    piso que qualquer modelo personalizado precisa superar.
     """
 
     name: ClassVar[str] = "popularity"
 
     def __init__(self, smoothing: float = 10.0) -> None:
-        """Configure the baseline.
+        """Configura o baseline.
 
         Args:
-            smoothing: Strength of the pull towards the global positive rate,
-                which protects items with very few interactions.
+            smoothing: Intensidade da atração para a taxa global de positivos,
+                que protege itens com pouquíssimas interações.
         """
         self.smoothing = smoothing
         self._item_scores: dict[int, float] = {}
@@ -35,11 +35,11 @@ class PopularityRecommender(RecommenderModel):
     def fit(
         self, data: InteractionData, validation: InteractionData | None = None
     ) -> None:
-        """Compute the smoothed positive rate of every item.
+        """Calcula a taxa suavizada de positivos de cada item.
 
         Args:
-            data: Training interactions.
-            validation: Unused; kept for interface compatibility.
+            data: Interações de treino.
+            validation: Não utilizado; existe por compatibilidade de interface.
         """
         self._prior = float(data.labels.mean()) if len(data) else 0.5
         positives = np.bincount(data.item_indices, weights=data.labels, minlength=1)
@@ -54,13 +54,13 @@ class PopularityRecommender(RecommenderModel):
         }
 
     def predict_proba(self, data: InteractionData) -> np.ndarray:
-        """Score interactions by item popularity.
+        """Pontua as interações pela popularidade do item.
 
         Args:
-            data: Interactions to score.
+            data: Interações a pontuar.
 
         Returns:
-            Popularity score of each item, falling back to the global rate.
+            Popularidade de cada item, com a taxa global como fallback.
         """
         return np.array(
             [
@@ -71,20 +71,20 @@ class PopularityRecommender(RecommenderModel):
         )
 
     def hyperparameters(self) -> dict[str, Any]:
-        """Report the configuration MLflow logs for this run.
+        """Descreve a configuração registrada no MLflow.
 
         Returns:
-            Mapping of hyper-parameter name to value.
+            Mapa de hiperparâmetro para valor.
         """
         return {"smoothing": self.smoothing}
 
 
 class LogisticRecommender(RecommenderModel):
-    """Scikit-Learn logistic regression over the behavioural features.
+    """Regressão logística do Scikit-Learn sobre as features comportamentais.
 
-    Unlike the neural model it has no notion of user or item identity: it only
-    sees the aggregated browsing features, which makes it a fair reference for
-    how much the learned embeddings actually add.
+    Diferente da rede neural, não faz ideia de quem é o usuário nem qual é o
+    item: enxerga apenas as features agregadas de navegação. Isso a torna uma
+    referência justa para medir o quanto os embeddings realmente agregam.
     """
 
     name: ClassVar[str] = "logistic"
@@ -95,12 +95,12 @@ class LogisticRecommender(RecommenderModel):
         max_iterations: int = 1000,
         seed: int = 42,
     ) -> None:
-        """Configure the estimator.
+        """Configura o estimador.
 
         Args:
-            penalty_strength: Inverse regularisation strength (``C``).
-            max_iterations: Maximum solver iterations.
-            seed: Seed handed to the solver for reproducibility.
+            penalty_strength: Inverso da força de regularização (``C``).
+            max_iterations: Máximo de iterações do solver.
+            seed: Semente entregue ao solver, para reprodutibilidade.
         """
         self.penalty_strength = penalty_strength
         self.max_iterations = max_iterations
@@ -110,11 +110,11 @@ class LogisticRecommender(RecommenderModel):
     def fit(
         self, data: InteractionData, validation: InteractionData | None = None
     ) -> None:
-        """Fit the logistic regression on the behavioural features.
+        """Ajusta a regressão logística nas features comportamentais.
 
         Args:
-            data: Training interactions.
-            validation: Unused; kept for interface compatibility.
+            data: Interações de treino.
+            validation: Não utilizado; existe por compatibilidade de interface.
         """
         estimator = LogisticRegression(
             C=self.penalty_strength,
@@ -125,26 +125,26 @@ class LogisticRecommender(RecommenderModel):
         self._estimator = estimator
 
     def predict_proba(self, data: InteractionData) -> np.ndarray:
-        """Score interactions with the fitted estimator.
+        """Pontua as interações com o estimador ajustado.
 
         Args:
-            data: Interactions to score.
+            data: Interações a pontuar.
 
         Returns:
-            Probability of the positive class for each row.
+            Probabilidade da classe positiva para cada linha.
 
         Raises:
-            RuntimeError: If the model has not been fitted.
+            RuntimeError: Se o modelo ainda não tiver sido treinado.
         """
         if self._estimator is None:
-            raise RuntimeError("LogisticRecommender must be fitted before scoring.")
+            raise RuntimeError("LogisticRecommender exige fit antes de pontuar.")
         return self._estimator.predict_proba(data.features)[:, 1].astype(np.float64)
 
     def hyperparameters(self) -> dict[str, Any]:
-        """Report the configuration MLflow logs for this run.
+        """Descreve a configuração registrada no MLflow.
 
         Returns:
-            Mapping of hyper-parameter name to value.
+            Mapa de hiperparâmetro para valor.
         """
         return {
             "penalty_strength": self.penalty_strength,

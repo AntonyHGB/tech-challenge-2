@@ -1,1 +1,1 @@
-"""MLflow experiment tracking and Model Registry integration."""
+"""Rastreamento de experimentos e Model Registry no MLflow."""

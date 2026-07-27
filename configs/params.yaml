@@ -1,5 +1,5 @@
-# Hyper-parameters of the DVC pipeline. Tracked by DVC, logged to MLflow and
-# validated by recsys.pipelines.params on load.
+# Hiperparâmetros do pipeline DVC. São versionados pelo DVC, registrados no
+# MLflow e validados por recsys.pipelines.params no carregamento.
 
 seed: 42
 
@@ -11,7 +11,7 @@ data:
 
 features:
   positive_threshold: 4.0
-  scaler: standard # one of: standard, minmax
+  scaler: standard # um entre: standard, minmax
 
 model:
   embedding_dim: 32

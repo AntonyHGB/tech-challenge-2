@@ -1,4 +1,4 @@
-"""Top-k recommendation on top of any :class:`RecommenderModel`."""
+"""Recomendação top-k construída sobre qualquer :class:`RecommenderModel`."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from dataclasses import dataclass
 import pandas as pd
 
 from recsys.data.interactions import InteractionData
-from recsys.features.scaling import scale_frame
+from recsys.features.builder import scale_frame
 from recsys.features.store import FeatureStore
 from recsys.models.base import RecommenderModel
 from recsys.preprocessing.pipeline import PreprocessingPipeline
@@ -16,11 +16,11 @@ from recsys.preprocessing.pipeline import PreprocessingPipeline
 
 @dataclass(frozen=True)
 class Recommendation:
-    """A single ranked suggestion.
+    """Uma sugestão do ranking.
 
     Attributes:
-        item_id: Raw identifier of the recommended item.
-        score: Predicted relevance probability.
+        item_id: Identificador bruto do item recomendado.
+        score: Probabilidade de relevância prevista.
     """
 
     item_id: int
@@ -28,11 +28,11 @@ class Recommendation:
 
 
 class TopKRanker:
-    """Rank the catalogue for a user by delegating the scoring to a model.
+    """Ordena o catálogo para um usuário, delegando a pontuação ao modelo.
 
-    Ranking is deliberately kept out of :class:`RecommenderModel`: the models
-    only score interactions, while candidate generation, feature assembly and
-    ordering live here (Single Responsibility Principle).
+    O ranqueamento fica de propósito fora de :class:`RecommenderModel`: os
+    modelos apenas pontuam interações, enquanto a geração de candidatos, a
+    montagem das features e a ordenação vivem aqui (Responsabilidade Única).
     """
 
     def __init__(
@@ -41,12 +41,12 @@ class TopKRanker:
         store: FeatureStore,
         pipeline: PreprocessingPipeline,
     ) -> None:
-        """Wire the ranker to a fitted model and its feature artefacts.
+        """Liga o ranqueador a um modelo treinado e aos artefatos de features.
 
         Args:
-            model: Fitted recommender used to score candidates.
-            store: Fitted feature artefacts (statistics and vocabularies).
-            pipeline: Fitted preprocessing pipeline for the feature columns.
+            model: Recomendador treinado, usado para pontuar candidatos.
+            store: Artefatos de features (estatísticas e vocabulários).
+            pipeline: Pipeline de pré-processamento já ajustado.
         """
         self._model = model
         self._store = store
@@ -57,21 +57,21 @@ class TopKRanker:
     def recommend(
         self, user_id: int, top_k: int = 10, exclude: Collection[int] = ()
     ) -> list[Recommendation]:
-        """Return the highest scoring items for a user.
+        """Devolve os itens de maior score para um usuário.
 
         Args:
-            user_id: Raw user identifier, which must be known to the encoder.
-            top_k: Number of items to return.
-            exclude: Items to skip, typically the ones already interacted with.
+            user_id: Identificador bruto do usuário, que precisa ser conhecido.
+            top_k: Quantidade de itens a devolver.
+            exclude: Itens a pular, tipicamente os já vistos pelo usuário.
 
         Returns:
-            Recommendations ordered from most to least relevant.
+            Recomendações ordenadas do mais para o menos relevante.
 
         Raises:
-            KeyError: If ``user_id`` was not seen during training.
+            KeyError: Se o usuário não tiver sido visto no treino.
         """
-        if not bool(self._user_encoder.known([user_id])[0]):
-            raise KeyError(f"Unknown user '{user_id}'.")
+        if not self._user_encoder.contains(user_id):
+            raise KeyError(f"Usuário '{user_id}' desconhecido.")
         candidates = self._candidate_frame(user_id, exclude)
         if candidates.empty:
             return []
@@ -85,14 +85,14 @@ class TopKRanker:
         ]
 
     def _candidate_frame(self, user_id: int, exclude: Collection[int]) -> pd.DataFrame:
-        """Assemble the scored feature frame for every candidate item.
+        """Monta o frame de features de cada item candidato.
 
         Args:
-            user_id: Raw user identifier.
-            exclude: Items to leave out of the candidate set.
+            user_id: Identificador bruto do usuário.
+            exclude: Itens deixados de fora do conjunto de candidatos.
 
         Returns:
-            Frame with encoded indices, scaled features and a dummy label.
+            Frame com índices codificados, features escalonadas e rótulo neutro.
         """
         blocked = set(exclude)
         items = [item for item in self._store.item_classes if item not in blocked]

@@ -1,7 +1,7 @@
 [project]
 name = "ecommerce-recsys"
 version = "0.1.0"
-description = "Behaviour-based product recommendation system for e-commerce (Tech Challenge Fase 02)."
+description = "Sistema de recomendação de produtos para e-commerce (Tech Challenge Fase 02)."
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [
@@ -37,8 +37,8 @@ src = ["src", "tests"]
 
 [tool.ruff.lint]
 select = [
-    "E",    # pycodestyle errors
-    "W",    # pycodestyle warnings
+    "E",    # erros do pycodestyle
+    "W",    # avisos do pycodestyle
     "F",    # pyflakes
     "I",    # isort
     "UP",   # pyupgrade
@@ -46,12 +46,12 @@ select = [
     "SIM",  # flake8-simplify
     "C4",   # flake8-comprehensions
     "N",    # pep8-naming
-    "D",    # pydocstyle (Google-style docstrings)
+    "D",    # pydocstyle (docstrings no padrão Google)
     "ANN",  # flake8-annotations (type hints)
-    "RUF",  # ruff-specific rules
+    "RUF",  # regras específicas do ruff
 ]
 ignore = [
-    "ANN401",  # allow typed **kwargs forwarding via Any
+    "ANN401",  # permite repassar **kwargs tipados como Any
 ]
 
 [tool.ruff.lint.pydocstyle]
@@ -61,7 +61,7 @@ convention = "google"
 known-first-party = ["recsys"]
 
 [tool.ruff.lint.per-file-ignores]
-# Tests favour readability over docstring/annotation ceremony.
+# Nos testes, legibilidade vale mais que a formalidade de docstrings/anotações.
 "tests/**/*.py" = ["D100", "D101", "D102", "D103", "D104", "ANN"]
 
 [tool.pytest.ini_options]

@@ -1,4 +1,4 @@
-"""Global seeding helpers that keep every pipeline run reproducible."""
+"""Semeadura global que mantém cada execução do pipeline reprodutível."""
 
 from __future__ import annotations
 
@@ -10,11 +10,11 @@ import torch
 
 
 def set_global_seed(seed: int) -> None:
-    """Seed every random number generator used across the pipeline.
+    """Semeia todos os geradores de números aleatórios usados no pipeline.
 
     Args:
-        seed: Seed shared by ``random``, NumPy and PyTorch so that a stage
-            re-executed with the same inputs produces the same outputs.
+        seed: Semente compartilhada por ``random``, NumPy e PyTorch, de modo que
+            um stage reexecutado com as mesmas entradas produza a mesma saída.
     """
     os.environ["PYTHONHASHSEED"] = str(seed)
     random.seed(seed)

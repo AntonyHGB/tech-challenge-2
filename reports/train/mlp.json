@@ -1,7 +1,7 @@
 {
   "model": "mlp",
-  "run_id": "88486123097b44dcaa3afbcbee0ccbc5",
-  "model_uri": "runs:/88486123097b44dcaa3afbcbee0ccbc5/model",
+  "run_id": "4cccecc6ceb64ba380d272d0829f8f21",
+  "model_uri": "runs:/4cccecc6ceb64ba380d272d0829f8f21/model",
   "hyperparameters": {
     "embedding_dim": 32,
     "hidden_dim": 64,

@@ -1,4 +1,4 @@
-"""Typed application settings loaded from the environment via Pydantic Settings."""
+"""Configurações tipadas, carregadas do ambiente via Pydantic Settings."""
 
 from __future__ import annotations
 
@@ -10,12 +10,11 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    """Strongly-typed configuration sourced from environment variables / ``.env``.
+    """Configuração validada, lida das variáveis de ambiente e do ``.env``.
 
-    Centralises every externalised setting so the rest of the codebase reads
-    configuration from one validated object instead of touching ``os.environ``
-    directly. Values are coerced and validated by Pydantic on load, and a fixed
-    :attr:`random_seed` keeps experiments reproducible.
+    Centraliza tudo o que é externalizado, para que o restante do código leia a
+    configuração de um único objeto validado em vez de acessar ``os.environ``.
+    A semente fixa em :attr:`random_seed` mantém os experimentos reprodutíveis.
     """
 
     model_config = SettingsConfigDict(
@@ -26,53 +25,53 @@ class Settings(BaseSettings):
     )
 
     random_seed: int = Field(
-        default=42, description="Global seed shared by every stochastic component."
+        default=42, description="Semente global de todo componente estocástico."
     )
     data_raw_dir: Path = Field(
-        default=Path("data/raw"), description="Directory holding the raw dataset."
+        default=Path("data/raw"), description="Diretório do dataset bruto."
     )
     data_processed_dir: Path = Field(
         default=Path("data/processed"),
-        description="Directory holding the processed dataset.",
+        description="Diretório dos dados processados.",
     )
     models_dir: Path = Field(
-        default=Path("models"), description="Directory where trained models land."
+        default=Path("models"), description="Diretório dos modelos treinados."
     )
     reports_dir: Path = Field(
         default=Path("reports"),
-        description="Directory holding metrics and comparison reports.",
+        description="Diretório das métricas e relatórios de comparação.",
     )
     params_file: Path = Field(
         default=Path("configs/params.yaml"),
-        description="Hyper-parameter file consumed by the DVC pipeline.",
+        description="Arquivo de hiperparâmetros consumido pelo pipeline DVC.",
     )
     mlflow_tracking_uri: str = Field(
         default="sqlite:///mlflow.db",
         description=(
-            "MLflow tracking backend. Defaults to a local SQLite store so the "
-            "Model Registry works without a server; docker compose points it "
-            "at the MLflow service instead."
+            "Backend de tracking do MLflow. O padrão é um SQLite local, "
+            "necessário para o Model Registry funcionar sem servidor; o "
+            "docker compose aponta para o serviço MLflow."
         ),
     )
     mlflow_experiment_name: str = Field(
         default="ecommerce-recsys",
-        description="MLflow experiment grouping every tracked run.",
+        description="Experimento que agrupa todas as execuções rastreadas.",
     )
     mlflow_artifact_location: str = Field(
         default="./mlartifacts",
-        description="Artifact root used when the experiment is first created.",
+        description="Raiz de artefatos usada ao criar o experimento.",
     )
     mlflow_registered_model_name: str = Field(
         default="ecommerce-recsys-recommender",
-        description="Name of the model registered and promoted in MLflow.",
+        description="Nome do modelo registrado e promovido no MLflow.",
     )
 
 
 @lru_cache
 def get_settings() -> Settings:
-    """Return the cached, process-wide application settings.
+    """Retorna as configurações da aplicação, em cache por processo.
 
     Returns:
-        The singleton :class:`Settings` instance loaded from the environment.
+        A instância única de :class:`Settings` carregada do ambiente.
     """
     return Settings()

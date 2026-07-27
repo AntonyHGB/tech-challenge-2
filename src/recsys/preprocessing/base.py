@@ -1,4 +1,4 @@
-"""Strategy interface shared by every feature preprocessing step."""
+"""Interface Strategy comum a todo passo de pré-processamento."""
 
 from __future__ import annotations
 
@@ -7,43 +7,43 @@ from collections.abc import Sequence
 
 
 class PreprocessingStrategy(ABC):
-    """Interchangeable transformation applied to a single numeric feature column.
+    """Transformação intercambiável aplicada a uma coluna numérica.
 
-    Implements the *Strategy* design pattern: each concrete subclass encapsulates
-    one transformation algorithm behind a common interface. New transformations
-    are added by subclassing rather than by editing existing code, honouring the
-    Open/Closed Principle.
+    Implementa o padrão *Strategy*: cada subclasse concreta encapsula um
+    algoritmo de transformação atrás de uma interface comum. Transformações
+    novas entram por subclasse, sem alterar o código existente (princípio
+    Aberto/Fechado).
     """
 
     @abstractmethod
     def fit(self, values: Sequence[float]) -> PreprocessingStrategy:
-        """Learn any parameters required to transform future values.
+        """Aprende os parâmetros necessários para transformar valores futuros.
 
         Args:
-            values: Training values used to estimate transformation parameters.
+            values: Valores de treino usados para estimar os parâmetros.
 
         Returns:
-            The fitted strategy instance, enabling call chaining.
+            A própria estratégia ajustada, permitindo encadear chamadas.
         """
 
     @abstractmethod
     def transform(self, values: Sequence[float]) -> list[float]:
-        """Apply the learned transformation to ``values``.
+        """Aplica a transformação aprendida a ``values``.
 
         Args:
-            values: Values to transform.
+            values: Valores a transformar.
 
         Returns:
-            Transformed values, in the same order as the input.
+            Valores transformados, na mesma ordem da entrada.
         """
 
     def fit_transform(self, values: Sequence[float]) -> list[float]:
-        """Fit the strategy and immediately transform the same values.
+        """Ajusta a estratégia e já transforma os mesmos valores.
 
         Args:
-            values: Values used both to fit and to transform.
+            values: Valores usados para ajustar e transformar.
 
         Returns:
-            Transformed values.
+            Valores transformados.
         """
         return self.fit(values).transform(values)

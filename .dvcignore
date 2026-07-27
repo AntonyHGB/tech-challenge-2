@@ -1,3 +1,6 @@
-# Add patterns of files dvc should ignore, which could improve
-# the performance. Learn more at
-# https://dvc.org/doc/user-guide/dvcignore
+# Padrões que o DVC ignora ao calcular o hash das dependências.
+# Sem isso, um bytecode recém-gerado invalidaria os stages a cada execução.
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/

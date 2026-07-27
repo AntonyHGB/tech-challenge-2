@@ -1,1 +1,1 @@
-"""Feature engineering derived exclusively from the training split."""
+"""Engenharia de features derivada exclusivamente do split de treino."""

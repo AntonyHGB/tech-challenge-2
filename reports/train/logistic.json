@@ -1,7 +1,7 @@
 {
   "model": "logistic",
-  "run_id": "6247b9819b134f6caf6219bb72181360",
-  "model_uri": "runs:/6247b9819b134f6caf6219bb72181360/model",
+  "run_id": "0dd69397f60a42c688240fb03d0e32d6",
+  "model_uri": "runs:/0dd69397f60a42c688240fb03d0e32d6/model",
   "hyperparameters": {
     "penalty_strength": 1.0,
     "max_iterations": 1000

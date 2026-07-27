@@ -1,4 +1,4 @@
-"""Preprocessing pipeline that composes named strategies (Strategy context)."""
+"""Pipeline que compõe estratégias por coluna (contexto do Strategy)."""
 
 from __future__ import annotations
 
@@ -8,42 +8,41 @@ from recsys.preprocessing.base import PreprocessingStrategy
 
 
 class PreprocessingPipeline:
-    """Apply a :class:`PreprocessingStrategy` to each named feature column.
+    """Aplica uma :class:`PreprocessingStrategy` a cada coluna de feature.
 
-    Acts as the *context* of the Strategy pattern: it owns a mapping of column
-    name to strategy and delegates the transformation to each strategy, staying
-    agnostic to the concrete algorithm in use.
+    É o *contexto* do padrão Strategy: guarda o mapa de coluna para estratégia
+    e delega a transformação a cada uma delas, sem conhecer o algoritmo usado.
     """
 
     def __init__(self, strategies: Mapping[str, PreprocessingStrategy]) -> None:
-        """Initialize the pipeline.
+        """Inicializa o pipeline.
 
         Args:
-            strategies: Mapping of feature-column name to the strategy that
-                transforms it.
+            strategies: Mapa de nome da coluna para a estratégia que a
+                transforma.
         """
         self._strategies = dict(strategies)
 
     @property
     def columns(self) -> list[str]:
-        """Names of the columns handled by the pipeline.
+        """Nomes das colunas tratadas pelo pipeline.
 
         Returns:
-            Configured column names, in insertion order.
+            Colunas configuradas, na ordem de inserção.
         """
         return list(self._strategies)
 
     def fit(self, columns: Mapping[str, Sequence[float]]) -> PreprocessingPipeline:
-        """Fit every strategy on its column.
+        """Ajusta cada estratégia na sua coluna.
 
         Args:
-            columns: Mapping of column name to the training values.
+            columns: Mapa de nome da coluna para os valores de treino.
 
         Returns:
-            The fitted pipeline.
+            O pipeline ajustado.
 
         Raises:
-            KeyError: If a configured column is missing from ``columns``.
+            KeyError: Se faltar em ``columns`` alguma coluna configurada.
         """
         for name, strategy in self._strategies.items():
             strategy.fit(columns[name])
@@ -52,16 +51,16 @@ class PreprocessingPipeline:
     def transform(
         self, columns: Mapping[str, Sequence[float]]
     ) -> dict[str, list[float]]:
-        """Transform every configured column with its fitted strategy.
+        """Transforma cada coluna com a sua estratégia já ajustada.
 
         Args:
-            columns: Mapping of column name to the values to transform.
+            columns: Mapa de nome da coluna para os valores a transformar.
 
         Returns:
-            Mapping of column name to transformed values.
+            Mapa de nome da coluna para os valores transformados.
 
         Raises:
-            KeyError: If a configured column is missing from ``columns``.
+            KeyError: Se faltar em ``columns`` alguma coluna configurada.
         """
         return {
             name: strategy.transform(columns[name])
@@ -71,16 +70,16 @@ class PreprocessingPipeline:
     def fit_transform(
         self, columns: Mapping[str, Sequence[float]]
     ) -> dict[str, list[float]]:
-        """Fit and transform every configured column.
+        """Ajusta e transforma todas as colunas configuradas.
 
         Args:
-            columns: Mapping of column name to the raw values of that column.
+            columns: Mapa de nome da coluna para os valores originais.
 
         Returns:
-            Mapping of column name to transformed values.
+            Mapa de nome da coluna para os valores transformados.
 
         Raises:
-            KeyError: If a configured column is missing from ``columns``.
+            KeyError: Se faltar em ``columns`` alguma coluna configurada.
         """
         return {
             name: strategy.fit_transform(columns[name])

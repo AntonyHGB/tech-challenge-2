@@ -1,4 +1,4 @@
-# Version control
+# Controle de versão
 .git/
 .gitignore
 
@@ -9,37 +9,37 @@ __pycache__/
 build/
 dist/
 
-# Virtual environments
+# Ambientes virtuais
 .venv/
 venv/
 env/
 
-# Tooling caches
+# Caches de ferramentas
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
 .coverage
 htmlcov/
 
-# Environment / secrets
+# Ambiente e segredos
 .env
 
-# ML experiment tracking
+# Rastreamento de experimentos
 mlruns/
 mlartifacts/
 mlflow.db
 
-# DVC cache and local remote (mounted at runtime instead)
+# Cache e remote local do DVC (montados em tempo de execução)
 .dvc/cache/
 .dvc/tmp/
 dvcstore/
 
-# Data, model and report artifacts (mounted or pulled via DVC)
+# Dados, modelos e relatórios (montados ou obtidos via DVC)
 data/
 models/
 reports/
 
-# Local project metadata
+# Metadados locais do projeto
 .idea/
 .vscode/
 .DS_Store

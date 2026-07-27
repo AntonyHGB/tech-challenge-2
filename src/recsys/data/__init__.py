@@ -1,1 +1,1 @@
-"""Dataset ingestion, encoding and splitting building blocks."""
+"""Ingestão, codificação e divisão do dataset de interações."""

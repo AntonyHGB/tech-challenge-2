@@ -1,7 +1,7 @@
 {
   "model": "popularity",
-  "run_id": "f6327bb1c52d40a0bba72d7d44fbd3e3",
-  "model_uri": "runs:/f6327bb1c52d40a0bba72d7d44fbd3e3/model",
+  "run_id": "ba1f3b96f53940c3b8d71abe3a3058a8",
+  "model_uri": "runs:/ba1f3b96f53940c3b8d71abe3a3058a8/model",
   "hyperparameters": {
     "smoothing": 10.0
   },

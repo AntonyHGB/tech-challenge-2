@@ -1,4 +1,4 @@
-"""Thin MLflow facade used by the pipeline stages."""
+"""Fachada enxuta do MLflow usada pelos stages do pipeline."""
 
 from __future__ import annotations
 
@@ -19,11 +19,11 @@ MODEL_ARTIFACT_PATH = "model"
 
 
 class ExperimentTracker:
-    """Log params, metrics and artifacts of a stage to MLflow.
+    """Registra parâmetros, métricas e artefatos de um stage no MLflow.
 
-    Concentrating the MLflow calls here keeps the pipeline stages readable and
-    makes the tracking backend a configuration detail rather than a dependency
-    spread across the code base.
+    Concentrar aqui as chamadas ao MLflow mantém os stages legíveis e faz do
+    backend de tracking um detalhe de configuração, em vez de uma dependência
+    espalhada pelo código.
     """
 
     def __init__(
@@ -32,14 +32,14 @@ class ExperimentTracker:
         experiment_name: str,
         artifact_location: str | None = None,
     ) -> None:
-        """Point MLflow at the configured backend and experiment.
+        """Aponta o MLflow para o backend e o experimento configurados.
 
         Args:
-            tracking_uri: Tracking server or local store URI.
-            experiment_name: Experiment grouping every run of the project.
-            artifact_location: Where a newly created experiment stores its
-                artifacts. Ignored when the experiment already exists; empty
-                means "let the tracking server decide".
+            tracking_uri: URI do servidor ou do store local de tracking.
+            experiment_name: Experimento que agrupa todas as execuções.
+            artifact_location: Onde um experimento recém-criado guarda os
+                artefatos. É ignorado se o experimento já existir; vazio
+                significa "deixar o servidor de tracking decidir".
         """
         mlflow.set_tracking_uri(tracking_uri)
         self._client = MlflowClient(tracking_uri=tracking_uri)
@@ -48,72 +48,63 @@ class ExperimentTracker:
 
     @property
     def client(self) -> MlflowClient:
-        """Underlying MLflow client, for registry operations.
+        """Cliente do MLflow, para as operações de registry.
 
         Returns:
-            The configured client.
+            O cliente configurado.
         """
         return self._client
-
-    @property
-    def experiment_id(self) -> str:
-        """Identifier of the experiment every run is logged to.
-
-        Returns:
-            The experiment id.
-        """
-        return self._experiment.experiment_id
 
     @contextmanager
     def run(
         self, run_name: str, tags: Mapping[str, str] | None = None
     ) -> Iterator[str]:
-        """Open an MLflow run as a context manager.
+        """Abre uma execução do MLflow como gerenciador de contexto.
 
         Args:
-            run_name: Human-readable name of the run.
-            tags: Optional tags attached to the run.
+            run_name: Nome legível da execução.
+            tags: Tags opcionais anexadas à execução.
 
         Yields:
-            The active run id.
+            O identificador da execução ativa.
         """
         with mlflow.start_run(run_name=run_name, tags=dict(tags or {})) as active:
             yield active.info.run_id
 
     def log_params(self, params: Mapping[str, Any]) -> None:
-        """Log flat hyper-parameters of the active run.
+        """Registra os hiperparâmetros da execução ativa.
 
         Args:
-            params: Mapping of parameter name to value.
+            params: Mapa de nome do parâmetro para o valor.
         """
         mlflow.log_params(dict(params))
 
     def log_metrics(self, metrics: Mapping[str, float], prefix: str = "") -> None:
-        """Log scalar metrics of the active run.
+        """Registra as métricas escalares da execução ativa.
 
         Args:
-            metrics: Mapping of metric name to value.
-            prefix: Optional prefix, e.g. ``"test"`` or ``"validation"``.
+            metrics: Mapa de nome da métrica para o valor.
+            prefix: Prefixo opcional, por exemplo ``"test"`` ou ``"validation"``.
         """
         mlflow.log_metrics(
             {f"{prefix}{name}": float(value) for name, value in metrics.items()}
         )
 
     def log_curves(self, curves: Mapping[str, Sequence[float]]) -> None:
-        """Log per-epoch learning curves as stepped metrics.
+        """Registra as curvas de aprendizado como métricas por época.
 
         Args:
-            curves: Mapping of curve name to its per-epoch values.
+            curves: Mapa de nome da curva para os valores por época.
         """
         for name, values in curves.items():
             for step, value in enumerate(values, start=1):
                 mlflow.log_metric(name, float(value), step=step)
 
     def log_file(self, path: Path) -> None:
-        """Log an existing file as a run artifact.
+        """Anexa um arquivo já existente como artefato da execução.
 
         Args:
-            path: File to upload.
+            path: Arquivo a enviar.
         """
         if path.exists():
             mlflow.log_artifact(str(path))
@@ -121,14 +112,14 @@ class ExperimentTracker:
     def log_recommender(
         self, model_path: Path, input_example: pd.DataFrame | None = None
     ) -> str:
-        """Log a persisted recommender as an MLflow ``pyfunc`` model.
+        """Registra um recomendador salvo como modelo ``pyfunc`` do MLflow.
 
         Args:
-            model_path: Serialised recommender to bundle with the wrapper.
-            input_example: Sample payload used to infer the model signature.
+            model_path: Recomendador serializado a empacotar com o wrapper.
+            input_example: Amostra usada para inferir a assinatura do modelo.
 
         Returns:
-            URI of the logged model inside the active run.
+            URI do modelo registrado dentro da execução ativa.
         """
         info = mlflow.pyfunc.log_model(
             artifact_path=MODEL_ARTIFACT_PATH,
@@ -143,14 +134,14 @@ class ExperimentTracker:
     def _ensure_experiment(
         self, name: str, artifact_location: str | None
     ) -> Experiment:
-        """Fetch the experiment, creating it on first use.
+        """Busca o experimento, criando-o no primeiro uso.
 
         Args:
-            name: Experiment name.
-            artifact_location: Artifact root used when creating it.
+            name: Nome do experimento.
+            artifact_location: Raiz de artefatos usada na criação.
 
         Returns:
-            The experiment entity.
+            A entidade do experimento.
         """
         existing = self._client.get_experiment_by_name(name)
         if existing is not None:

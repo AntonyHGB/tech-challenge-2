@@ -1,4 +1,4 @@
-"""Chronological train/validation/test splitting of interaction data."""
+"""Divisão cronológica das interações em treino, validação e teste."""
 
 from __future__ import annotations
 
@@ -9,17 +9,17 @@ import pandas as pd
 
 @dataclass(frozen=True)
 class DataSplits:
-    """The three disjoint interaction frames consumed by the pipeline."""
+    """Os três conjuntos disjuntos consumidos pelo pipeline."""
 
     train: pd.DataFrame
     validation: pd.DataFrame
     test: pd.DataFrame
 
     def as_mapping(self) -> dict[str, pd.DataFrame]:
-        """Expose the splits keyed by name.
+        """Expõe os splits indexados pelo nome.
 
         Returns:
-            Mapping of split name to frame.
+            Mapa de nome do split para o frame correspondente.
         """
         return {
             "train": self.train,
@@ -33,27 +33,27 @@ def split_by_user_history(
     validation_fraction: float,
     test_fraction: float,
 ) -> DataSplits:
-    """Hold out the most recent interactions of every user.
+    """Separa as interações mais recentes de cada usuário.
 
-    A global time cut would push whole users into the holdout, leaving them
-    without a trained embedding. Splitting inside each user's own history keeps
-    the backtest realistic — the model only ever sees the past — while every
-    user remains represented in training.
+    Um corte temporal global jogaria usuários inteiros para o holdout, deixando
+    esses usuários sem embedding treinado. Dividir dentro do histórico de cada
+    usuário mantém o backtest realista — o modelo só enxerga o passado — sem
+    perder nenhum usuário no treino.
 
     Args:
-        frame: Interaction frame with ``user_id`` and ``timestamp``.
-        validation_fraction: Share of each history used for validation.
-        test_fraction: Share of each history used for testing.
+        frame: Interações com as colunas ``user_id`` e ``timestamp``.
+        validation_fraction: Fração de cada histórico usada na validação.
+        test_fraction: Fração de cada histórico usada no teste.
 
     Returns:
-        The chronological splits.
+        Os splits cronológicos.
 
     Raises:
-        ValueError: If the requested fractions do not leave data for training.
+        ValueError: Se as frações não deixarem dados para o treino.
     """
     holdout = validation_fraction + test_fraction
     if not 0 < holdout < 1:
-        raise ValueError("validation_fraction + test_fraction must be in (0, 1).")
+        raise ValueError("validation_fraction + test_fraction deve estar em (0, 1).")
     ordered = frame.sort_values(["user_id", "timestamp"]).reset_index(drop=True)
     position = _relative_position(ordered)
     return DataSplits(
@@ -66,16 +66,16 @@ def split_by_user_history(
 
 
 def drop_cold_start(splits: DataSplits) -> DataSplits:
-    """Remove holdout rows whose user or item is absent from the training split.
+    """Remove do holdout as linhas cujo usuário ou item não está no treino.
 
-    Cold-start entities have no learned embedding, so scoring them would measure
-    the fallback rather than the model.
+    Entidades em cold start não têm embedding aprendido: avaliá-las mediria o
+    comportamento de fallback, não o do modelo.
 
     Args:
-        splits: Chronological splits.
+        splits: Splits cronológicos.
 
     Returns:
-        Splits whose validation and test frames only reference known entities.
+        Splits cujos conjuntos de validação e teste só citam entidades vistas.
     """
     users = set(splits.train["user_id"].unique())
     items = set(splits.train["item_id"].unique())
@@ -87,13 +87,13 @@ def drop_cold_start(splits: DataSplits) -> DataSplits:
 
 
 def _relative_position(ordered: pd.DataFrame) -> pd.Series:
-    """Locate each interaction inside its user's history.
+    """Localiza cada interação dentro do histórico do seu usuário.
 
     Args:
-        ordered: Frame sorted by user and timestamp.
+        ordered: Frame ordenado por usuário e timestamp.
 
     Returns:
-        Series in ``[0, 1)`` where ``0`` is the user's oldest interaction.
+        Série em ``[0, 1)``, onde ``0`` é a interação mais antiga do usuário.
     """
     rank = ordered.groupby("user_id").cumcount()
     history_size = ordered.groupby("user_id")["item_id"].transform("size")
@@ -101,28 +101,28 @@ def _relative_position(ordered: pd.DataFrame) -> pd.Series:
 
 
 def _subset(ordered: pd.DataFrame, mask: pd.Series) -> pd.DataFrame:
-    """Select the masked rows in chronological order.
+    """Seleciona as linhas marcadas, em ordem cronológica.
 
     Args:
-        ordered: Frame sorted by user and timestamp.
-        mask: Boolean mask aligned with ``ordered``.
+        ordered: Frame ordenado por usuário e timestamp.
+        mask: Máscara booleana alinhada a ``ordered``.
 
     Returns:
-        The selected rows, sorted by timestamp with a fresh index.
+        As linhas selecionadas, ordenadas por timestamp e com índice novo.
     """
     return ordered[mask].sort_values("timestamp").reset_index(drop=True)
 
 
 def _keep_known(frame: pd.DataFrame, users: set[int], items: set[int]) -> pd.DataFrame:
-    """Filter ``frame`` down to rows with a known user and item.
+    """Filtra ``frame`` mantendo só linhas com usuário e item conhecidos.
 
     Args:
-        frame: Holdout frame.
-        users: User identifiers seen during training.
-        items: Item identifiers seen during training.
+        frame: Frame de holdout.
+        users: Identificadores de usuário vistos no treino.
+        items: Identificadores de item vistos no treino.
 
     Returns:
-        The filtered frame with a fresh index.
+        O frame filtrado, com índice novo.
     """
     mask = frame["user_id"].isin(users) & frame["item_id"].isin(items)
     return frame[mask].reset_index(drop=True)

@@ -59,14 +59,14 @@ performance, limitações e vieses está no **[Model Card](docs/model_card.md)**
 src/recsys/
   config.py             # Settings (Pydantic) — configuração tipada lida do .env
   seeding.py            # set_global_seed — reprodutibilidade em random/numpy/torch
+  metrics.py            # Métricas de classificação e de ranking
+  ranker.py             # TopKRanker — geração de recomendações top-k
   data/                 # Ingestão: download, limpeza, encoders, split, arrays
-  features/             # Estatísticas de treino, rótulo implícito, escala, feature store
+  features/             # Rótulo implícito, escala e o feature store persistido
   preprocessing/        # Padrão Strategy + Template Method (scalers do Scikit-Learn)
-  models/               # Interface comum, Factory, MLP (PyTorch), baselines, early stopping
-  metrics/              # Métricas de classificação e de ranking
-  serving/              # TopKRanker — geração de recomendações top-k
-  tracking/             # Facade do MLflow, wrapper pyfunc e promoção no Registry
-  pipelines/            # Os quatro stages do DVC + contexto e layout de artefatos
+  models/               # Interface comum, Factory, MLP (PyTorch), baselines
+  tracking/             # Fachada do MLflow, wrapper pyfunc e promoção no Registry
+  pipelines/            # Os stages do DVC + contexto, caminhos e parâmetros
 scripts/
   validate_env.py       # Validação de ambiente (versão, pacotes, settings)
   download_dataset.py   # Baixa o dataset bruto para ser versionado no DVC
@@ -83,9 +83,9 @@ data/ models/           # Artefatos versionados via DVC, fora do git
 ## Padrões de projeto aplicados
 
 - **Factory** — `ModelFactory` constrói os recomendadores a partir de uma chave de
-  texto. Novos modelos entram por registro (`models/registry.py`), sem ramificar
+  texto. Novos modelos entram por registro (`models/factory.py`), sem ramificar
   a lógica com `if/else`. O mapeamento de configuração para argumentos também é
-  por registro (`pipelines/model_config.py`).
+  por registro (`pipelines/params.py`).
 - **Strategy** — `PreprocessingStrategy` permite trocar o algoritmo de
   pré-processamento de cada coluna sem alterar o `PreprocessingPipeline` que o
   consome, e a estratégia usada vem do `params.yaml`.
@@ -150,7 +150,7 @@ virtualenv e o código, rodando como usuário não-root.
 ```bash
 poetry run ruff check .        # lint (isort, pydocstyle/google, pep8-naming, annotations)
 poetry run ruff format .       # formatação
-poetry run pytest              # suíte de testes (56 testes)
+poetry run pytest              # suíte de testes (58 testes)
 poetry run pytest tests/test_models.py::test_mlp_learns_a_separable_signal   # um teste
 poetry run pre-commit install  # ativa os hooks de pre-commit
 ```
