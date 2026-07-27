@@ -1,0 +1,37 @@
+# Hyper-parameters of the DVC pipeline. Tracked by DVC, logged to MLflow and
+# validated by recsys.pipelines.params on load.
+
+seed: 42
+
+data:
+  min_user_interactions: 5
+  min_item_interactions: 5
+  validation_fraction: 0.1
+  test_fraction: 0.1
+
+features:
+  positive_threshold: 4.0
+  scaler: standard # one of: standard, minmax
+
+model:
+  embedding_dim: 32
+  hidden_dim: 64
+  dropout: 0.2
+
+training:
+  epochs: 30
+  batch_size: 512
+  learning_rate: 0.003
+  weight_decay: 0.00001
+  early_stopping_patience: 3
+
+baselines:
+  popularity_smoothing: 10.0
+  logistic_penalty_strength: 1.0
+  logistic_max_iterations: 1000
+
+evaluation:
+  top_k: 10
+  decision_threshold: 0.5
+  primary_metric: roc_auc
+  sample_users: 3

@@ -35,14 +35,19 @@ logs/
 # ML experiment tracking
 mlruns/
 mlartifacts/
+mlflow.db
 
-# DVC (cache is local; tracked .dvc files stay versioned)
+# DVC (cache and local remote stay out of git; .dvc files are versioned)
 /.dvc/cache
 /.dvc/tmp
+/dvcstore/
 
 # Data & model artifacts (versioned via DVC, not git)
 /data/*
 !/data/.gitkeep
+!/data/raw/
+/data/raw/*
+!/data/raw/*.dvc
 /models/*
 !/models/.gitkeep
 

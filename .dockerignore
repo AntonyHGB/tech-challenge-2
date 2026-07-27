@@ -27,10 +27,17 @@ htmlcov/
 # ML experiment tracking
 mlruns/
 mlartifacts/
+mlflow.db
 
-# Data & model artifacts (mounted or pulled via DVC, not baked into the image)
+# DVC cache and local remote (mounted at runtime instead)
+.dvc/cache/
+.dvc/tmp/
+dvcstore/
+
+# Data, model and report artifacts (mounted or pulled via DVC)
 data/
 models/
+reports/
 
 # Local project metadata
 .idea/

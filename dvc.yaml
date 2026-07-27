@@ -1,0 +1,89 @@
+stages:
+  preprocess:
+    cmd: python -m recsys.pipelines.preprocess
+    deps:
+      - data/raw/ratings.csv
+      - src/recsys/data/loader.py
+      - src/recsys/pipelines/preprocess.py
+    params:
+      - configs/params.yaml:
+          - seed
+          - data
+    outs:
+      - data/processed/interactions.parquet
+
+  feature_eng:
+    cmd: python -m recsys.pipelines.feature_eng
+    deps:
+      - data/processed/interactions.parquet
+      - src/recsys/data
+      - src/recsys/features
+      - src/recsys/preprocessing
+      - src/recsys/pipelines/feature_eng.py
+    params:
+      - configs/params.yaml:
+          - seed
+          - data
+          - features
+    outs:
+      - data/processed/train.parquet
+      - data/processed/validation.parquet
+      - data/processed/test.parquet
+      - data/processed/feature_store.json
+      - data/processed/preprocessor.joblib
+
+  train:
+    foreach:
+      - mlp
+      - popularity
+      - logistic
+    do:
+      cmd: python -m recsys.pipelines.train --model ${item}
+      deps:
+        - data/processed/train.parquet
+        - data/processed/validation.parquet
+        - data/processed/feature_store.json
+        - src/recsys/metrics
+        - src/recsys/models
+        - src/recsys/tracking
+        - src/recsys/pipelines/train.py
+      params:
+        - configs/params.yaml:
+            - seed
+            - model
+            - training
+            - baselines
+            - evaluation
+      outs:
+        - models/${item}/model.joblib
+      metrics:
+        - reports/train/${item}.json:
+            cache: false
+
+  evaluate:
+    cmd: python -m recsys.pipelines.evaluate
+    deps:
+      - data/processed/test.parquet
+      - data/processed/preprocessor.joblib
+      - models/logistic/model.joblib
+      - models/mlp/model.joblib
+      - models/popularity/model.joblib
+      - reports/train/logistic.json
+      - reports/train/mlp.json
+      - reports/train/popularity.json
+      - src/recsys/metrics
+      - src/recsys/serving
+      - src/recsys/pipelines/evaluate.py
+    params:
+      - configs/params.yaml:
+          - evaluation
+    metrics:
+      - reports/metrics.json:
+          cache: false
+    outs:
+      - reports/comparison.md:
+          cache: false
+      - reports/model_registry.json:
+          cache: false
+      - reports/sample_recommendations.json:
+          cache: false

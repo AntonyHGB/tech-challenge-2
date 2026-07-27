@@ -24,6 +24,50 @@ class PreprocessingPipeline:
         """
         self._strategies = dict(strategies)
 
+    @property
+    def columns(self) -> list[str]:
+        """Names of the columns handled by the pipeline.
+
+        Returns:
+            Configured column names, in insertion order.
+        """
+        return list(self._strategies)
+
+    def fit(self, columns: Mapping[str, Sequence[float]]) -> PreprocessingPipeline:
+        """Fit every strategy on its column.
+
+        Args:
+            columns: Mapping of column name to the training values.
+
+        Returns:
+            The fitted pipeline.
+
+        Raises:
+            KeyError: If a configured column is missing from ``columns``.
+        """
+        for name, strategy in self._strategies.items():
+            strategy.fit(columns[name])
+        return self
+
+    def transform(
+        self, columns: Mapping[str, Sequence[float]]
+    ) -> dict[str, list[float]]:
+        """Transform every configured column with its fitted strategy.
+
+        Args:
+            columns: Mapping of column name to the values to transform.
+
+        Returns:
+            Mapping of column name to transformed values.
+
+        Raises:
+            KeyError: If a configured column is missing from ``columns``.
+        """
+        return {
+            name: strategy.transform(columns[name])
+            for name, strategy in self._strategies.items()
+        }
+
     def fit_transform(
         self, columns: Mapping[str, Sequence[float]]
     ) -> dict[str, list[float]]:
