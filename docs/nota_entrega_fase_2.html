@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FIAP Tech Challenge — Fase 2</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f8fafc;
+            color: #334155;
+            display: flex;
+            justify-content: center;
+            padding: 40px 20px;
+        }
+        .container {
+            background-color: #ffffff;
+            width: 100%;
+            max-width: 800px;
+            padding: 50px 60px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        }
+        h1 {
+            font-size: 26px;
+            color: #0f172a;
+            font-weight: 700;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #38bdf8;
+            margin-bottom: 24px;
+        }
+        .note-box {
+            background-color: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 16px 20px;
+            border-radius: 4px;
+            margin-bottom: 32px;
+            font-size: 15px;
+            line-height: 1.6;
+            color: #78350f;
+        }
+        .note-box strong {
+            color: #92400e;
+        }
+        h2 {
+            font-size: 20px;
+            color: #0284c7;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+        .intro-text {
+            font-size: 15px;
+            line-height: 1.6;
+            margin-bottom: 20px;
+            color: #475569;
+        }
+        ul {
+            list-style: none;
+            margin-bottom: 36px;
+        }
+        li {
+            position: relative;
+            padding-left: 20px;
+            margin-bottom: 16px;
+            font-size: 14.5px;
+            line-height: 1.6;
+            color: #334155;
+        }
+        li::before {
+            content: "•";
+            position: absolute;
+            left: 0;
+            color: #0f172a;
+            font-weight: bold;
+            font-size: 18px;
+        }
+        li strong {
+            color: #0f172a;
+        }
+        .button-container {
+            text-align: center;
+            margin: 40px 0 50px 0;
+        }
+        .btn {
+            display: inline-block;
+            background-color: #1e293b;
+            color: #ffffff;
+            text-decoration: none;
+            padding: 14px 32px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 15px;
+            transition: background-color 0.2s ease;
+        }
+        .btn:hover {
+            background-color: #0f172a;
+        }
+        .footer {
+            text-align: right;
+            font-size: 15px;
+            line-height: 1.5;
+            color: #334155;
+            margin-top: 20px;
+        }
+        .footer .name {
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        @media print {
+            body {
+                background-color: #ffffff;
+                padding: 0;
+            }
+            .container {
+                box-shadow: none;
+                padding: 0;
+                max-width: 100%;
+            }
+            .btn {
+                background-color: #1e293b !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .note-box {
+                background-color: #fef3c7 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>FIAP Tech Challenge — Fase 2</h1>
+
+        <div class="note-box">
+            <strong>Nota sobre a entrega:</strong> Devido a algumas mudanças na minha vida profissional nas últimas semanas, que acabaram pegando muito do meu tempo, não consegui gravar o vídeo de apresentação. Por isso, preparei este documento para destacar as particularidades e as decisões técnicas implementadas no projeto.
+        </div>
+
+        <h2>Particularidades e Implementações Técnicas</h2>
+
+        <p class="intro-text">
+            O foco desta entrega esteve em construir uma solução de recomendação de produtos para e-commerce robusta e pronta para produção, priorizando qualidade de software, arquitetura limpa e rastreabilidade total:
+        </p>
+
+        <ul>
+            <li>
+                <strong>Modelagem Customizada (PyTorch):</strong> Além dos <em>baselines</em> tradicionais (Regressão Logística e Popularidade), desenvolvi uma arquitetura de Rede Neural (MLP com User/Item Embeddings de 32d) em PyTorch para predição e ranqueamento de relevância, equipada com <em>Early Stopping</em>.
+            </li>
+            <li>
+                <strong>Pipeline de Dados Versionado (DVC):</strong> Construção de um pipeline reprodutível de 6 estágios (<em>preprocess</em>, <em>feature_eng</em>, <em>train@mlp</em>, <em>train@popularity</em>, <em>train@logistic</em>, <em>evaluate</em>) com dados versionados e rastreabilidade total de ponta a ponta via DVC.
+            </li>
+            <li>
+                <strong>Tracking & Model Registry (MLflow):</strong> Rastreamento completo de hiperparâmetros, curvas de aprendizado e métricas de teste, com promoção automatizada do melhor modelo (<em>champion</em>) para o estágio <code>Production</code> no Model Registry.
+            </li>
+            <li>
+                <strong>Arquitetura Clean Code & Design Patterns:</strong> Estrutura modular aplicando os padrões <strong>Factory</strong> (<code>ModelFactory</code>), <strong>Strategy</strong> (<code>PreprocessingStrategy</code>) e <strong>Template Method</strong> (<code>SklearnScalerStrategy</code>), além de type hints, docstrings Google e funções curtas (≤ 20 linhas).
+            </li>
+            <li>
+                <strong>Automação e Conteinerização (Docker):</strong> Ambiente totalmente conteinerizado utilizando Dockerfile multi-stage otimizado (builder + runtime slim com usuário não-root) e orquestração via Docker Compose integrando o serviço de treino e o servidor MLflow com backend SQLite.
+            </li>
+            <li>
+                <strong>Testes e Qualidade:</strong> Implementação de uma suíte com 59 testes automatizados em Pytest (cobertura de pré-processamento, split determinístico, fábrica de modelos e seeds globais) e linting/formatação 100% aprovados com Ruff.
+            </li>
+            <li>
+                <strong>Governança & Model Card:</strong> Documentação detalhada em <code>docs/model_card.md</code> cobrindo transparência, métricas de ranking (<em>Precision@10</em>, <em>NDCG@10</em>), limitações técnicas e análise de vieses comportamentais.
+            </li>
+        </ul>
+
+        <div class="button-container">
+            <a href="https://github.com/AntonyHGB/tech-challenge-2" class="btn" target="_blank">Acessar Repositório Completo no GitHub</a>
+        </div>
+
+        <div class="footer">
+            <p>Atenciosamente,</p>
+            <p class="name">Antonio Henrique Gimenes Bertagnolli</p>
+        </div>
+    </div>
+</body>
+</html>
